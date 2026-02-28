@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScoutIQ — Football Scouting Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1520;
+    --surface2: #121d2e;
+    --border: #1e2d42;
+    --accent: #00e5ff;
+    --accent2: #ff5e3a;
+    --accent3: #b8ff57;
+    --text: #e8f0f8;
+    --muted: #4a6080;
+    --gold: #ffd166;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative; z-index: 10;
+    padding: 0 32px;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,12,16,0.9);
+    backdrop-filter: blur(12px);
+  }
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 26px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--text); }
+  .header-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* NAV TABS */
+  nav {
+    position: relative; z-index: 10;
+    display: flex; gap: 0;
+    padding: 0 32px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 16px 28px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN */
+  main {
+    position: relative; z-index: 1;
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* SECTION HEADER */
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .section-heading {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 28px;
+  }
+  .section-heading em { color: var(--accent); font-style: normal; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+  }
+  .card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* SELECTS */
+  select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a6080' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* STAT BAR */
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .stat-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 120px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .stat-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    width: 28px;
+    text-align: right;
+  }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+  /* PLAYER CARD (overview) */
+  .player-header-card {
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .player-header-card::before {
+    content: '';
+    position: absolute;
+    right: -40px; top: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%);
+  }
+  .player-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 80px;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--border);
+    position: absolute;
+    right: 28px; bottom: -10px;
+    user-select: none;
+  }
+  .player-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .player-info h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .player-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
+  .player-meta span { color: var(--accent); }
+  .overall-badge {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 12px 18px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .overall-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 46px;
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .overall-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* STRENGTH TAGS */
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+    background: rgba(0,229,255,0.1);
+    border: 1px solid rgba(0,229,255,0.3);
+    color: var(--accent);
+  }
+  .tag.red { background: rgba(255,94,58,0.1); border-color: rgba(255,94,58,0.3); color: var(--accent2); }
+  .tag.green { background: rgba(184,255,87,0.1); border-color: rgba(184,255,87,0.3); color: var(--accent3); }
+
+  /* ROLE FIT METER */
+  .role-fit-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .role-fit-item:last-child { border-bottom: none; }
+  .role-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    width: 180px;
+    flex-shrink: 0;
+  }
+  .role-bar-bg {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .role-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .role-pct {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    width: 52px;
+    text-align: right;
+  }
+
+  /* COMPARISON DIFF TABLE */
+  .diff-table { width: 100%; border-collapse: collapse; }
+  .diff-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .diff-table td {
+    padding: 9px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(30,45,66,0.5);
+  }
+  .diff-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .diff-pos { color: var(--accent3); font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; }
+  .diff-neg { color: var(--accent2); font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; }
+  .diff-neu { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  /* SIMILAR PLAYER CARD */
+  .sim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .sim-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .sim-rank {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--border);
+    width: 28px;
+    flex-shrink: 0;
+  }
+  .sim-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .sim-info h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+  .sim-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+  }
+  .sim-score {
+    margin-left: auto;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .sim-score .pct {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--accent3);
+  }
+  .sim-score .lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* RADAR SVG */
+  .radar-wrap { display: flex; justify-content: center; }
+
+  /* TOOLTIP */
+  .tooltip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  /* RESPONSIVE */
+  @media(max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    main { padding: 16px; }
+    nav { overflow-x: auto; }
+  }
+
+  /* ANIMATE IN */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .panel.active > * { animation: fadeUp 0.35s ease both; }
+  .panel.active > *:nth-child(2) { animation-delay: 0.05s; }
+  .panel.active > *:nth-child(3) { animation-delay: 0.1s; }
+  .panel.active > *:nth-child(4) { animation-delay: 0.15s; }
+
+  .vs-divider {
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px; font-weight: 900;
+    color: var(--muted);
+  }
+  .controls-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .label-sm {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip"></div>
+
+<header>
+  <div class="logo">Scout<span>IQ</span></div>
+  <div class="header-tag">v1.0 · Football Analytics Platform</div>
+</header>
+
+<nav>
+  <div class="tab active" data-panel="overview">① Player Overview</div>
+  <div class="tab" data-panel="compare">② Comparison</div>
+  <div class="tab" data-panel="rolefit">③ Role Fit</div>
+  <div class="tab" data-panel="similar">④ Similar Players</div>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 1 — PLAYER OVERVIEW
+═══════════════════════════════════════════════ -->
+<div class="panel active" id="panel-overview">
+  <p class="section-title">Module 01</p>
+  <h1 class="section-heading">Player <em>Overview</em></h1>
+
+  <div class="controls-row">
+    <span class="label-sm">Select Player:</span>
+    <select id="overview-select" onchange="renderOverview()"></select>
+  </div>
+
+  <div id="overview-content"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 2 — COMPARISON
+═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-compare">
+  <p class="section-title">Module 02</p>
+  <h1 class="section-heading">Player <em>vs</em> Player</h1>
+
+  <div class="controls-row">
+    <span class="label-sm">Player A:</span>
+    <select id="compare-a" onchange="renderCompare()"></select>
+    <span class="vs-divider">VS</span>
+    <span class="label-sm">Player B:</span>
+    <select id="compare-b" onchange="renderCompare()"></select>
+  </div>
+
+  <div id="compare-content"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 3 — ROLE FIT
+═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-rolefit">
+  <p class="section-title">Module 03</p>
+  <h1 class="section-heading">Role <em>Fit Analysis</em></h1>
+
+  <div class="controls-row">
+    <span class="label-sm">Select Player:</span>
+    <select id="role-select" onchange="renderRoleFit()"></select>
+  </div>
+
+  <div id="rolefit-content"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 4 — SIMILAR PLAYERS
+═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-similar">
+  <p class="section-title">Module 04</p>
+  <h1 class="section-heading">Similar <em>Player Finder</em></h1>
+
+  <div class="controls-row">
+    <span class="label-sm">Reference Player:</span>
+    <select id="similar-select" onchange="renderSimilar()"></select>
+    <span class="label-sm">Filter Position:</span>
+    <select id="similar-pos-filter" onchange="renderSimilar()">
+      <option value="all">All Positions</option>
+      <option value="FW">Forwards</option>
+      <option value="MF">Midfielders</option>
+      <option value="DF">Defenders</option>
+      <option value="GK">Goalkeepers</option>
+    </select>
+    <span class="label-sm">Max Age:</span>
+    <select id="similar-age-filter" onchange="renderSimilar()">
+      <option value="99">Any Age</option>
+      <option value="23">U-23</option>
+      <option value="26">U-26</option>
+      <option value="30">U-30</option>
+    </select>
+  </div>
+
+  <div id="similar-content"></div>
+</div>
+
+</main>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA — 20 Players
+// ─────────────────────────────────────────────
+const PLAYERS = [
+  { id:1,  name:"Erling Haaland",    pos:"FW", age:23, overall:91,
+    pace:97, shooting:93, passing:65, dribbling:80, defending:45, physical:88,
+    finishing:95, heading:86, longShots:72, crossing:48, vision:68, stamina:85, strength:87, aggression:72, positioning:94, reactions:93 },
+  { id:2,  name:"Kylian Mbappé",     pos:"FW", age:25, overall:91,
+    pace:99, shooting:89, passing:80, dribbling:92, defending:36, physical:78,
+    finishing:87, heading:62, longShots:76, crossing:72, vision:84, stamina:88, strength:70, aggression:60, positioning:89, reactions:92 },
+  { id:3,  name:"Vinicius Jr",       pos:"FW", age:23, overall:89,
+    pace:97, shooting:82, passing:75, dribbling:94, defending:28, physical:72,
+    finishing:81, heading:52, longShots:68, crossing:80, vision:80, stamina:84, strength:65, aggression:55, positioning:82, reactions:88 },
+  { id:4,  name:"Harry Kane",        pos:"FW", age:30, overall:90,
+    pace:70, shooting:92, passing:83, dribbling:78, defending:40, physical:83,
+    finishing:93, heading:91, longShots:86, crossing:58, vision:88, stamina:79, strength:82, aggression:66, positioning:93, reactions:91 },
+  { id:5,  name:"Lautaro Martinez",  pos:"FW", age:26, overall:87,
+    pace:80, shooting:88, passing:72, dribbling:85, defending:38, physical:80,
+    finishing:89, heading:78, longShots:73, crossing:52, vision:76, stamina:83, strength:78, aggression:78, positioning:87, reactions:86 },
+  { id:6,  name:"Rodri",             pos:"MF", age:27, overall:91,
+    pace:60, shooting:73, passing:92, dribbling:78, defending:88, physical:85,
+    finishing:68, heading:76, longShots:77, crossing:70, vision:91, stamina:88, strength:84, aggression:82, positioning:84, reactions:88 },
+  { id:7,  name:"Jude Bellingham",   pos:"MF", age:20, overall:88,
+    pace:78, shooting:82, passing:84, dribbling:87, defending:72, physical:82,
+    finishing:79, heading:80, longShots:80, crossing:74, vision:86, stamina:90, strength:80, aggression:80, positioning:82, reactions:87 },
+  { id:8,  name:"Kevin De Bruyne",   pos:"MF", age:32, overall:91,
+    pace:74, shooting:82, passing:96, dribbling:86, defending:64, physical:74,
+    finishing:78, heading:59, longShots:87, crossing:93, vision:97, stamina:79, strength:71, aggression:68, positioning:80, reactions:90 },
+  { id:9,  name:"Pedri",             pos:"MF", age:21, overall:87,
+    pace:74, shooting:73, passing:90, dribbling:91, defending:68, physical:63,
+    finishing:68, heading:55, longShots:70, crossing:72, vision:92, stamina:82, strength:57, aggression:55, positioning:78, reactions:87 },
+  { id:10, name:"Frenkie de Jong",   pos:"MF", age:26, overall:86,
+    pace:72, shooting:68, passing:89, dribbling:88, defending:72, physical:72,
+    finishing:62, heading:62, longShots:68, crossing:68, vision:88, stamina:84, strength:70, aggression:62, positioning:76, reactions:84 },
+  { id:11, name:"Virgil van Dijk",   pos:"DF", age:32, overall:89,
+    pace:76, shooting:60, passing:82, dribbling:64, defending:91, physical:92,
+    finishing:55, heading:92, longShots:52, crossing:52, vision:80, stamina:83, strength:92, aggression:78, positioning:91, reactions:88 },
+  { id:12, name:"William Saliba",    pos:"DF", age:22, overall:85,
+    pace:82, shooting:45, passing:78, dribbling:68, defending:87, physical:84,
+    finishing:40, heading:84, longShots:44, crossing:42, vision:74, stamina:80, strength:82, aggression:72, positioning:86, reactions:84 },
+  { id:13, name:"Ruben Dias",        pos:"DF", age:26, overall:88,
+    pace:72, shooting:52, passing:80, dribbling:62, defending:90, physical:86,
+    finishing:48, heading:88, longShots:48, crossing:44, vision:78, stamina:82, strength:88, aggression:80, positioning:89, reactions:86 },
+  { id:14, name:"Trent Alexander-Arnold", pos:"DF", age:25, overall:87,
+    pace:80, shooting:75, passing:91, dribbling:80, defending:74, physical:70,
+    finishing:70, heading:64, longShots:84, crossing:93, vision:90, stamina:80, strength:66, aggression:58, positioning:78, reactions:85 },
+  { id:15, name:"Alphonso Davies",   pos:"DF", age:23, overall:84,
+    pace:99, shooting:62, passing:80, dribbling:88, defending:76, physical:75,
+    finishing:55, heading:60, longShots:60, crossing:84, vision:80, stamina:90, strength:68, aggression:62, positioning:74, reactions:84 },
+  { id:16, name:"Alisson Becker",    pos:"GK", age:31, overall:90,
+    pace:52, shooting:18, passing:78, dribbling:22, defending:91, physical:80,
+    finishing:10, heading:70, longShots:52, crossing:15, vision:82, stamina:74, strength:80, aggression:60, positioning:92, reactions:93 },
+  { id:17, name:"Manuel Neuer",      pos:"GK", age:37, overall:88,
+    pace:58, shooting:22, passing:82, dribbling:28, defending:89, physical:76,
+    finishing:12, heading:72, longShots:55, crossing:18, vision:84, stamina:72, strength:78, aggression:62, positioning:94, reactions:92 },
+  { id:18, name:"Gavi",              pos:"MF", age:19, overall:85,
+    pace:72, shooting:70, passing:88, dribbling:89, defending:70, physical:60,
+    finishing:65, heading:50, longShots:66, crossing:70, vision:90, stamina:88, strength:55, aggression:74, positioning:74, reactions:85 },
+  { id:19, name:"Federico Valverde", pos:"MF", age:25, overall:87,
+    pace:84, shooting:80, passing:84, dribbling:84, defending:78, physical:84,
+    finishing:76, heading:72, longShots:82, crossing:72, vision:83, stamina:93, strength:80, aggression:80, positioning:80, reactions:87 },
+  { id:20, name:"Leroy Sané",        pos:"FW", age:28, overall:85,
+    pace:93, shooting:82, passing:76, dribbling:90, defending:32, physical:70,
+    finishing:80, heading:54, longShots:75, crossing:82, vision:78, stamina:82, strength:66, aggression:54, positioning:80, reactions:86 },
+];
+
+// ─────────────────────────────────────────────
+// ROLE TEMPLATES (weights per attribute)
+// ─────────────────────────────────────────────
+const ROLES = {
+  "Poacher":             { finishing:0.3, positioning:0.25, reactions:0.2, pace:0.15, heading:0.1 },
+  "Target Man":          { heading:0.3, strength:0.25, finishing:0.2, physical:0.15, aggression:0.1 },
+  "Winger":              { pace:0.3, dribbling:0.25, crossing:0.2, stamina:0.15, shooting:0.1 },
+  "Box-to-Box MF":       { stamina:0.25, passing:0.2, dribbling:0.15, defending:0.15, shooting:0.15, physical:0.1 },
+  "Ball-Playing Def":    { passing:0.25, vision:0.2, defending:0.2, physical:0.15, positioning:0.1, reactions:0.1 },
+  "Deep-Lying Playmaker":{ vision:0.3, passing:0.3, dribbling:0.15, longShots:0.15, positioning:0.1 },
+  "Pressing Winger":     { pace:0.25, aggression:0.2, stamina:0.2, dribbling:0.2, defending:0.15 },
+};
+
+const ROLE_COLORS = {
+  "Poacher": "#ff5e3a",
+  "Target Man": "#ffd166",
+  "Winger": "#00e5ff",
+  "Box-to-Box MF": "#b8ff57",
+  "Ball-Playing Def": "#c77dff",
+  "Deep-Lying Playmaker": "#4cc9f0",
+  "Pressing Winger": "#f72585",
+};
+
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+function calcRoleFit(player, roleWeights) {
+  let score = 0;
+  for (const [attr, weight] of Object.entries(roleWeights)) {
+    score += (player[attr] || 0) * weight;
+  }
+  return Math.round(Math.min(score, 99));
+}
+
+function euclideanSimilarity(a, b) {
+  const attrs = ['pace','shooting','passing','dribbling','defending','physical','finishing','heading','longShots','crossing','vision','stamina','strength','aggression','positioning','reactions'];
+  let sum = 0;
+  for (const attr of attrs) {
+    sum += Math.pow((a[attr]||0) - (b[attr]||0), 2);
+  }
+  const dist = Math.sqrt(sum);
+  const maxDist = Math.sqrt(attrs.length * 100 * 100);
+  return Math.round((1 - dist / maxDist) * 100);
+}
+
+function getBarColor(val) {
+  if (val >= 85) return '#b8ff57';
+  if (val >= 70) return '#00e5ff';
+  if (val >= 55) return '#ffd166';
+  return '#ff5e3a';
+}
+
+function initials(name) {
+  return name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+}
+
+// ─────────────────────────────────────────────
+// POPULATE SELECTS
+// ─────────────────────────────────────────────
+function populateSelect(id, selected = 0) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  PLAYERS.forEach((p, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.text = `${p.name} (${p.pos}, ${p.age})`;
+    el.appendChild(opt);
+  });
+  el.value = selected;
+}
+
+populateSelect('overview-select', 0);
+populateSelect('compare-a', 0);
+populateSelect('compare-b', 1);
+populateSelect('role-select', 0);
+populateSelect('similar-select', 0);
+
+// ─────────────────────────────────────────────
+// TAB NAVIGATION
+// ─────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+  });
+});
+
+// ─────────────────────────────────────────────
+// MODULE 1 — OVERVIEW
+// ─────────────────────────────────────────────
+const ATTR_GROUPS = {
+  "Attacking": ['finishing','heading','longShots','crossing','positioning'],
+  "Technical": ['pace','shooting','passing','dribbling','reactions'],
+  "Physical":  ['physical','stamina','strength','aggression'],
+  "Creative":  ['vision','dribbling','crossing','passing'],
+};
+
+function renderOverview() {
+  const p = PLAYERS[document.getElementById('overview-select').value];
+  const container = document.getElementById('overview-content');
+
+  // Top 5 strengths
+  const allAttrs = ['pace','shooting','passing','dribbling','defending','physical','finishing','heading','longShots','crossing','vision','stamina','strength','aggression','positioning','reactions'];
+  const sorted = [...allAttrs].sort((a,b) => (p[b]||0)-(p[a]||0));
+  const top5 = sorted.slice(0,5);
+  const bot3 = sorted.slice(-3);
+
+  container.innerHTML = `
+    <div class="player-header-card">
+      <div class="player-avatar">${initials(p.name)}</div>
+      <div class="player-info">
+        <h2>${p.name}</h2>
+        <div class="player-meta">
+          Position: <span>${p.pos}</span> &nbsp;·&nbsp; Age: <span>${p.age}</span>
+        </div>
+        <div class="tags" style="margin-top:10px">
+          ${top5.map(a => `<span class="tag green">${a}</span>`).join('')}
+          ${bot3.map(a => `<span class="tag red">${a}</span>`).join('')}
+        </div>
+      </div>
+      <div class="overall-badge">
+        <div class="overall-num">${p.overall}</div>
+        <div class="overall-label">Overall</div>
+      </div>
+      <div class="player-number">${p.overall}</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label">Attribute Breakdown</div>
+        ${allAttrs.map(attr => `
+          <div class="stat-row">
+            <span class="stat-name">${attr}</span>
+            <div class="stat-bar-bg">
+              <div class="stat-bar-fill" style="width:${p[attr]||0}%;background:${getBarColor(p[attr]||0)}"></div>
+            </div>
+            <span class="stat-val" style="color:${getBarColor(p[attr]||0)}">${p[attr]||0}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card">
+        <div class="card-label">Radar Profile</div>
+        <div class="radar-wrap" id="radar-overview"></div>
+        <div class="divider"></div>
+        <div class="card-label">Role Suitability (Top 3)</div>
+        ${Object.entries(ROLES).sort((a,b) => calcRoleFit(p,b[1])-calcRoleFit(p,a[1])).slice(0,3).map(([role, weights]) => {
+          const fit = calcRoleFit(p, weights);
+          return `
+            <div class="role-fit-item">
+              <span class="role-name">${role}</span>
+              <div class="role-bar-bg">
+                <div class="role-bar-fill" style="width:${fit}%;background:${ROLE_COLORS[role]}"></div>
+              </div>
+              <span class="role-pct" style="color:${ROLE_COLORS[role]}">${fit}%</span>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  // Radar
+  drawRadar('#radar-overview', [p], ['pace','shooting','passing','dribbling','defending','physical'], 200, [['#00e5ff',0.25]]);
+}
+
+// ─────────────────────────────────────────────
+// D3 RADAR CHART
+// ─────────────────────────────────────────────
+function drawRadar(selector, players, axes, size, colorOpacity) {
+  d3.select(selector).selectAll('*').remove();
+  const margin = 40;
+  const r = (size - margin*2) / 2;
+  const cx = size/2, cy = size/2;
+  const n = axes.length;
+  const angleSlice = (Math.PI * 2) / n;
+
+  const svg = d3.select(selector)
+    .append('svg')
+    .attr('width', size).attr('height', size);
+
+  const g = svg.append('g').attr('transform', `translate(${cx},${cy})`);
+
+  // Grid rings
+  [0.25,0.5,0.75,1].forEach(pct => {
+    g.append('circle')
+      .attr('r', r * pct)
+      .attr('fill', 'none')
+      .attr('stroke', 'rgba(30,45,66,0.8)')
+      .attr('stroke-width', 1);
+    g.append('text')
+      .attr('x', 4).attr('y', -r * pct - 2)
+      .attr('fill', '#4a6080')
+      .attr('font-family', 'DM Mono, monospace')
+      .attr('font-size', '9')
+      .text(Math.round(100 * pct));
+  });
+
+  // Axes
+  axes.forEach((_, i) => {
+    const angle = angleSlice * i - Math.PI / 2;
+    const x = Math.cos(angle) * r;
+    const y = Math.sin(angle) * r;
+    g.append('line').attr('x1',0).attr('y1',0).attr('x2',x).attr('y2',y)
+      .attr('stroke','rgba(30,45,66,0.8)').attr('stroke-width',1);
+    const lx = Math.cos(angle) * (r + 16);
+    const ly = Math.sin(angle) * (r + 16);
+    g.append('text').attr('x',lx).attr('y',ly)
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill','#4a6080')
+      .attr('font-family','DM Mono, monospace')
+      .attr('font-size','10')
+      .text(axes[i].toUpperCase().slice(0,3));
+  });
+
+  // Polygons
+  players.forEach((p, pi) => {
+    const [color, opacity] = colorOpacity[pi] || ['#00e5ff', 0.2];
+    const points = axes.map((ax, i) => {
+      const val = (p[ax] || 0) / 100;
+      const angle = angleSlice * i - Math.PI / 2;
+      return [Math.cos(angle)*r*val, Math.sin(angle)*r*val];
+    });
+
+    const pathData = points.map((pt,i) => (i===0?'M':'L')+pt[0].toFixed(2)+','+pt[1].toFixed(2)).join(' ')+'Z';
+
+    g.append('path').attr('d', pathData)
+      .attr('fill', color).attr('fill-opacity', opacity)
+      .attr('stroke', color).attr('stroke-width', 2).attr('stroke-opacity', 0.9);
+
+    // Dots
+    points.forEach(([px, py], i) => {
+      g.append('circle').attr('cx', px).attr('cy', py).attr('r', 3)
+        .attr('fill', color).attr('stroke', 'none');
+    });
+  });
+}
+
+// ─────────────────────────────────────────────
+// MODULE 2 — COMPARISON
+// ─────────────────────────────────────────────
+function renderCompare() {
+  const a = PLAYERS[document.getElementById('compare-a').value];
+  const b = PLAYERS[document.getElementById('compare-b').value];
+
+  const attrs = ['pace','shooting','passing','dribbling','defending','physical','finishing','heading','longShots','crossing','vision','stamina','strength','aggression','positioning','reactions'];
+
+  const container = document.getElementById('compare-content');
+
+  container.innerHTML = `
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="player-header-card" style="margin-bottom:0">
+        <div class="player-avatar" style="border-color:#00e5ff;color:#00e5ff">${initials(a.name)}</div>
+        <div class="player-info">
+          <h2 style="color:#00e5ff">${a.name}</h2>
+          <div class="player-meta">Position: <span>${a.pos}</span> · Age: <span>${a.age}</span></div>
+        </div>
+        <div class="overall-badge" style="border-color:#00e5ff">
+          <div class="overall-num">${a.overall}</div>
+          <div class="overall-label">Overall</div>
+        </div>
+      </div>
+      <div class="player-header-card" style="margin-bottom:0">
+        <div class="player-avatar" style="border-color:#ff5e3a;color:#ff5e3a">${initials(b.name)}</div>
+        <div class="player-info">
+          <h2 style="color:#ff5e3a">${b.name}</h2>
+          <div class="player-meta">Position: <span>${b.pos}</span> · Age: <span>${b.age}</span></div>
+        </div>
+        <div class="overall-badge" style="border-color:#ff5e3a">
+          <div class="overall-num">${b.overall}</div>
+          <div class="overall-label">Overall</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="card-label">Radar Comparison</div>
+        <div class="radar-wrap" id="radar-compare"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Head-to-Head Bars</div>
+        ${attrs.map(attr => {
+          const av = a[attr]||0, bv = b[attr]||0;
+          return `
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <span class="stat-name" style="width:auto;color:${av>=bv?'#00e5ff':'#4a6080'}">${av}</span>
+                <span class="stat-name" style="width:auto;text-align:center;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">${attr.slice(0,8)}</span>
+                <span class="stat-name" style="width:auto;color:${bv>=av?'#ff5e3a':'#4a6080'}">${bv}</span>
+              </div>
+              <div style="display:flex;gap:3px;align-items:center">
+                <div style="flex:${av};height:5px;background:#00e5ff;border-radius:2px 0 0 2px;margin-left:auto;max-width:${av}%;opacity:${av>=bv?1:0.35}"></div>
+                <div style="flex:${100-Math.max(av,bv)};min-width:3px"></div>
+                <div style="flex:${bv};height:5px;background:#ff5e3a;border-radius:0 2px 2px 0;max-width:${bv}%;opacity:${bv>=av?1:0.35}"></div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Difference Analysis</div>
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th>Attribute</th>
+            <th style="color:#00e5ff">${a.name}</th>
+            <th style="color:#ff5e3a">${b.name}</th>
+            <th>Difference</th>
+            <th>Advantage</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${attrs.map(attr => {
+            const av = a[attr]||0, bv = b[attr]||0, diff = av - bv;
+            return `<tr>
+              <td style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">${attr}</td>
+              <td style="color:#00e5ff;font-family:'DM Mono',monospace">${av}</td>
+              <td style="color:#ff5e3a;font-family:'DM Mono',monospace">${bv}</td>
+              <td class="${diff>0?'diff-pos':diff<0?'diff-neg':'diff-neu'}">${diff>0?'+':''}${diff}</td>
+              <td><span class="tag" style="background:${diff>0?'rgba(0,229,255,0.1)':diff<0?'rgba(255,94,58,0.1)':'rgba(74,96,128,0.1)'};border-color:${diff>0?'rgba(0,229,255,0.3)':diff<0?'rgba(255,94,58,0.3)':'rgba(74,96,128,0.3)'};color:${diff>0?'#00e5ff':diff<0?'#ff5e3a':'#4a6080'}">${diff>0?a.name.split(' ')[0]:diff<0?b.name.split(' ')[0]:'EQUAL'}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const radarAxes = ['pace','shooting','passing','dribbling','defending','physical'];
+  drawRadar('#radar-compare', [a, b], radarAxes, 280, [['#00e5ff',0.2],['#ff5e3a',0.2]]);
+}
+
+// ─────────────────────────────────────────────
+// MODULE 3 — ROLE FIT
+// ─────────────────────────────────────────────
+function renderRoleFit() {
+  const p = PLAYERS[document.getElementById('role-select').value];
+  const fits = Object.entries(ROLES).map(([role, weights]) => ({
+    role, fit: calcRoleFit(p, weights)
+  })).sort((a,b) => b.fit - a.fit);
+
+  const best = fits[0];
+
+  const container = document.getElementById('rolefit-content');
+  container.innerHTML = `
+    <div class="player-header-card" style="margin-bottom:24px">
+      <div class="player-avatar">${initials(p.name)}</div>
+      <div class="player-info">
+        <h2>${p.name}</h2>
+        <div class="player-meta">Best Fit: <span style="color:${ROLE_COLORS[best.role]}">${best.role}</span> at <span style="color:${ROLE_COLORS[best.role]}">${best.fit}%</span></div>
+      </div>
+      <div class="overall-badge">
+        <div class="overall-num">${p.overall}</div>
+        <div class="overall-label">Overall</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label">Role Fit Scores</div>
+        ${fits.map(({role, fit}) => `
+          <div class="role-fit-item">
+            <span class="role-name">${role}</span>
+            <div class="role-bar-bg">
+              <div class="role-bar-fill" style="width:${fit}%;background:${ROLE_COLORS[role]}"></div>
+            </div>
+            <span class="role-pct" style="color:${ROLE_COLORS[role]}">${fit}%</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card">
+        <div class="card-label">Top Role — Key Attributes</div>
+        ${Object.entries(ROLES[best.role]).sort((a,b)=>b[1]-a[1]).map(([attr, weight]) => `
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <span style="font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">${attr}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:11px;color:${ROLE_COLORS[best.role]}">Weight: ${Math.round(weight*100)}%</span>
+            </div>
+            <div class="stat-bar-bg" style="height:8px">
+              <div class="stat-bar-fill" style="width:${p[attr]||0}%;background:${ROLE_COLORS[best.role]}"></div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:${ROLE_COLORS[best.role]};margin-top:3px;text-align:right">${p[attr]||0}</div>
+          </div>
+        `).join('')}
+        <div class="divider"></div>
+        <div class="card-label">Radar — Best Role Attributes</div>
+        <div class="radar-wrap" id="radar-role"></div>
+      </div>
+    </div>
+
+    <!-- All players ranking for this role -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-label">All Players — Ranked by Best Role (${best.role})</div>
+      <table class="diff-table">
+        <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Age</th><th>Overall</th><th>Fit Score</th></tr></thead>
+        <tbody>
+          ${PLAYERS.map(pl => ({...pl, fit: calcRoleFit(pl, ROLES[best.role])}))
+            .sort((a,b) => b.fit-a.fit)
+            .map((pl, i) => `<tr>
+              <td style="color:var(--muted);font-family:'DM Mono',monospace">${i+1}</td>
+              <td style="font-weight:500;${pl.id===p.id?`color:${ROLE_COLORS[best.role]}`:''}">${pl.name}</td>
+              <td style="font-family:'DM Mono',monospace;color:var(--muted)">${pl.pos}</td>
+              <td style="font-family:'DM Mono',monospace">${pl.age}</td>
+              <td style="font-family:'DM Mono',monospace">${pl.overall}</td>
+              <td><span class="role-pct" style="color:${ROLE_COLORS[best.role]};font-size:16px">${pl.fit}%</span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const roleAxes = Object.keys(ROLES[best.role]).slice(0,6);
+  drawRadar('#radar-role', [p], roleAxes, 220, [[ROLE_COLORS[best.role], 0.25]]);
+}
+
+// ─────────────────────────────────────────────
+// MODULE 4 — SIMILAR PLAYERS
+// ─────────────────────────────────────────────
+function renderSimilar() {
+  const ref = PLAYERS[document.getElementById('similar-select').value];
+  const posFilter = document.getElementById('similar-pos-filter').value;
+  const ageFilter = parseInt(document.getElementById('similar-age-filter').value);
+
+  let pool = PLAYERS.filter(p => p.id !== ref.id);
+  if (posFilter !== 'all') pool = pool.filter(p => p.pos === posFilter);
+  pool = pool.filter(p => p.age <= ageFilter);
+
+  const scored = pool.map(p => ({...p, sim: euclideanSimilarity(ref, p)}))
+    .sort((a,b) => b.sim - a.sim)
+    .slice(0, 5);
+
+  const container = document.getElementById('similar-content');
+
+  container.innerHTML = `
+    <div class="player-header-card" style="margin-bottom:24px">
+      <div class="player-avatar" style="border-color:var(--accent3);color:var(--accent3)">${initials(ref.name)}</div>
+      <div class="player-info">
+        <h2>${ref.name}</h2>
+        <div class="player-meta">Finding similar profiles… <span>Position: ${ref.pos}</span> · <span>Age: ${ref.age}</span> · <span>OVR: ${ref.overall}</span></div>
+      </div>
+      <div class="overall-badge" style="border-color:var(--accent3)">
+        <div class="overall-num" style="color:var(--accent3)">${ref.overall}</div>
+        <div class="overall-label">Reference</div>
+      </div>
+    </div>
+
+    ${scored.length === 0 ? `<div class="card"><p style="color:var(--muted);font-family:'DM Mono',monospace">No players match the current filters.</p></div>` : `
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+        ${scored.map((p, i) => `
+          <div class="sim-card">
+            <div class="sim-rank">${i+1}</div>
+            <div class="sim-avatar" style="border-color:${p.sim>=85?'var(--accent3)':p.sim>=75?'var(--accent)':'var(--border)'};color:${p.sim>=85?'var(--accent3)':p.sim>=75?'var(--accent)':'var(--muted)'}">${initials(p.name)}</div>
+            <div class="sim-info">
+              <h4>${p.name}</h4>
+              <div class="sim-meta">${p.pos} · AGE ${p.age} · OVR ${p.overall}</div>
+            </div>
+            <div class="sim-score">
+              <div class="pct" style="color:${p.sim>=85?'var(--accent3)':p.sim>=75?'var(--accent)':'var(--muted)'}">${p.sim}%</div>
+              <div class="lbl">Similarity</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="card">
+        <div class="card-label">Radar — Reference vs Top Match</div>
+        <div class="radar-wrap" id="radar-similar"></div>
+        <div style="display:flex;gap:20px;justify-content:center;margin-top:12px">
+          <span style="display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent3)">
+            <span style="width:14px;height:3px;background:var(--accent3);border-radius:2px;display:inline-block"></span>${ref.name}
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">
+            <span style="width:14px;height:3px;background:var(--accent);border-radius:2px;display:inline-block"></span>${scored[0].name} (Top Match)
+          </span>
+        </div>
+      </div>
+    `}
+  `;
+
+  if (scored.length > 0) {
+    drawRadar('#radar-similar', [ref, scored[0]], ['pace','shooting','passing','dribbling','defending','physical'], 280, [['#b8ff57',0.2],['#00e5ff',0.2]]);
+  }
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderOverview();
+renderCompare();
+renderRoleFit();
+renderSimilar();
+</script>
+</body>
+</html>
