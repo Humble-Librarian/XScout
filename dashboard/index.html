@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>xScout — Football Scouting Dashboard</title>
+  <meta name="description" content="Interactive football scouting dashboard powered by real StatsBomb event data. Compare players, analyze role fit, and discover similar profiles.">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="tooltip" id="tooltip"></div>
+
+<header>
+  <div class="logo">x<span>Scout</span></div>
+  <div class="header-tag">v1.0 · La Liga 2015/16 · StatsBomb Open Data</div>
+</header>
+
+<nav id="main-nav">
+  <div class="tab active" data-panel="overview">① Player Overview</div>
+  <div class="tab" data-panel="compare">② Comparison</div>
+  <div class="tab" data-panel="rolefit">③ Role Fit</div>
+  <div class="tab" data-panel="similar">④ Similar Players</div>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 1 — PLAYER OVERVIEW
+═══════════════════════════════════════════════ -->
+<div class="panel active" id="panel-overview">
+  <p class="section-title">Module 01</p>
+  <h1 class="section-heading">Player <em>Overview</em></h1>
+
+  <div class="controls-row">
+    <span class="label-sm">Select Player:</span>
+    <select id="overview-select"></select>
+  </div>
+
+  <div id="overview-content">
+    <p class="loading-msg">Loading player data…</p>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 2 — COMPARISON
+═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-compare">
+  <p class="section-title">Module 02</p>
+  <h1 class="section-heading">Player <em>vs</em> Player</h1>
+
+  <div class="controls-row">
+    <span class="label-sm">Player A:</span>
+    <select id="compare-a"></select>
+    <span class="vs-divider">VS</span>
+    <span class="label-sm">Player B:</span>
+    <select id="compare-b"></select>
+  </div>
+
+  <div id="compare-content"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 3 — ROLE FIT
+═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-rolefit">
+  <p class="section-title">Module 03</p>
+  <h1 class="section-heading">Role <em>Fit Analysis</em></h1>
+
+  <div class="controls-row">
+    <span class="label-sm">Select Player:</span>
+    <select id="role-select"></select>
+  </div>
+
+  <div id="rolefit-content"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 4 — SIMILAR PLAYERS
+═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-similar">
+  <p class="section-title">Module 04</p>
+  <h1 class="section-heading">Similar <em>Player Finder</em></h1>
+
+  <div class="controls-row">
+    <span class="label-sm">Reference Player:</span>
+    <select id="similar-select"></select>
+    <span class="label-sm">Filter Position:</span>
+    <select id="similar-pos-filter">
+      <option value="all">All Positions</option>
+      <option value="FW">Forwards</option>
+      <option value="MF">Midfielders</option>
+      <option value="DF">Defenders</option>
+      <option value="GK">Goalkeepers</option>
+    </select>
+    <span class="label-sm">Max Age:</span>
+    <select id="similar-age-filter">
+      <option value="99">Any Age</option>
+      <option value="23">U-23</option>
+      <option value="26">U-26</option>
+      <option value="30">U-30</option>
+    </select>
+  </div>
+
+  <div id="similar-content"></div>
+</div>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
