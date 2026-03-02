@@ -1,14 +1,16 @@
 """
-xScout Data Pipeline — Stage 1
-Fetches StatsBomb open data and processes it into a dashboard-ready players.json.
+xScout Data Pipeline - Full StatsBomb Open Data
+Fetches ALL competitions & seasons (male + female) from StatsBomb open data
+and processes them into a dashboard-ready players.json.
 
-Data Source: StatsBomb Open Data (La Liga 2015/16)
+Data Source: StatsBomb Open Data (all available competitions & seasons)
 Output: data/players.json
 """
 
 import json
 import os
 import sys
+import time
 import warnings
 from pathlib import Path
 
@@ -17,27 +19,38 @@ from statsbombpy import sb
 
 warnings.filterwarnings("ignore")
 
-# ─────────────────────────────────────────────
+# Fix Windows console encoding
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
+# ---------------------------------------------
 # CONFIGURATION
 # ─────────────────────────────────────────────
-COMPETITION_ID = 11       # La Liga
-SEASON_ID = 27            # 2015/16
 MIN_MINUTES = 450         # Minimum minutes to qualify (5 full matches)
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data"
+CACHE_DIR = OUTPUT_DIR / "cache"
 OUTPUT_FILE = OUTPUT_DIR / "players.json"
 
 
-def fetch_matches():
-    """Fetch all matches for the selected competition and season."""
-    print(f"[1/6] Fetching matches for La Liga 2015/16 ...")
-    matches = sb.matches(competition_id=COMPETITION_ID, season_id=SEASON_ID)
-    print(f"       Found {len(matches)} matches.")
+def fetch_all_competitions():
+    """Fetch every competition/season combo available in StatsBomb open data."""
+    print("[INIT] Fetching available competitions ...")
+    comps = sb.competitions()
+    print(f"       Found {len(comps)} competition/season combos.")
+    print(f"       Genders: {comps['competition_gender'].unique().tolist()}")
+    return comps
+
+
+def fetch_matches(competition_id, season_id):
+    """Fetch all matches for a given competition and season."""
+    matches = sb.matches(competition_id=competition_id, season_id=season_id)
     return matches
 
 
 def fetch_all_events(matches):
     """Fetch event-level data for every match. Returns a single concatenated DataFrame."""
-    print(f"[2/6] Fetching events for {len(matches)} matches (this may take a few minutes) ...")
     all_events = []
     for idx, match_id in enumerate(matches["match_id"]):
         try:
@@ -45,11 +58,12 @@ def fetch_all_events(matches):
             events["match_id"] = match_id
             all_events.append(events)
         except Exception as e:
-            print(f"       ⚠ Skipped match {match_id}: {e}")
+            print(f"         [!] Skipped match {match_id}: {e}")
         if (idx + 1) % 50 == 0:
-            print(f"       ... processed {idx + 1}/{len(matches)} matches")
+            print(f"         ... processed {idx + 1}/{len(matches)} matches")
+    if not all_events:
+        return pd.DataFrame()
     events_df = pd.concat(all_events, ignore_index=True)
-    print(f"       Total events collected: {len(events_df):,}")
     return events_df
 
 
@@ -58,8 +72,6 @@ def calculate_minutes(events_df, matches):
     Estimate minutes played per player.
     Uses substitution events to adjust from full-match minutes.
     """
-    print("[3/6] Calculating minutes played per player ...")
-
     # Get match durations (approximate: use last event minute per match)
     match_durations = (
         events_df.groupby("match_id")["minute"]
@@ -132,7 +144,6 @@ def calculate_minutes(events_df, matches):
         .rename(columns={"minutes": "minutes_played"})
     )
 
-    print(f"       Tracked {len(total_minutes)} unique players.")
     return total_minutes
 
 
@@ -141,23 +152,20 @@ def aggregate_metrics(events_df, minutes_df):
     Aggregate raw event counts per player across all matches.
     Returns a DataFrame with raw counts ready for per-90 conversion.
     """
-    print("[4/6] Aggregating player metrics ...")
-
     players = minutes_df.copy()
 
     # ── Shots & xG ──
     shots = events_df[events_df["type"] == "Shot"]
     shot_counts = shots.groupby("player_id").size().reset_index(name="shots")
     goals = shots[shots["shot_outcome"] == "Goal"].groupby("player_id").size().reset_index(name="goals")
-    xg = shots.groupby("player_id")["shot_statsbomb_xg"].sum().reset_index(name="total_xg")
+    xg = shots.groupby("player_id")["shot_statsbomb_xg"].sum().reset_index(name="total_xg") if "shot_statsbomb_xg" in shots.columns else pd.DataFrame(columns=["player_id", "total_xg"])
 
     # ── Passes ──
     passes = events_df[events_df["type"] == "Pass"]
     total_passes = passes.groupby("player_id").size().reset_index(name="total_passes")
     completed_passes = passes[passes["pass_outcome"].isna()].groupby("player_id").size().reset_index(name="completed_passes")
 
-    # Progressive passes (move ball at least 10m towards goal)
-    # Simplified: passes in the final third
+    # Progressive passes (passes into the final third)
     prog_passes = passes[passes["pass_end_location"].notna()].copy()
     if not prog_passes.empty:
         try:
@@ -173,9 +181,12 @@ def aggregate_metrics(events_df, minutes_df):
         prog_pass_counts = pd.DataFrame(columns=["player_id", "prog_passes"])
 
     # Key passes (passes that led to a shot / goal assist)
-    key_passes = passes[
-        (passes["pass_goal_assist"] == True) | (passes["pass_shot_assist"] == True)
-    ].groupby("player_id").size().reset_index(name="key_passes")
+    key_pass_mask = pd.Series(False, index=passes.index)
+    if "pass_goal_assist" in passes.columns:
+        key_pass_mask = key_pass_mask | (passes["pass_goal_assist"] == True)
+    if "pass_shot_assist" in passes.columns:
+        key_pass_mask = key_pass_mask | (passes["pass_shot_assist"] == True)
+    key_passes = passes[key_pass_mask].groupby("player_id").size().reset_index(name="key_passes")
 
     # ── Dribbles ──
     dribbles = events_df[events_df["type"] == "Dribble"]
@@ -186,11 +197,12 @@ def aggregate_metrics(events_df, minutes_df):
     pressures = events_df[events_df["type"] == "Pressure"]
     pressure_counts = pressures.groupby("player_id").size().reset_index(name="pressures")
 
-    # Press success: check if next event after pressure is a recovery/turnover
-    # Simplified: count pressures that have a counterpress tag
-    press_success_counts = pressures[
-        pressures.get("counterpress", pd.Series(dtype=bool)).fillna(False) == True
-    ].groupby("player_id").size().reset_index(name="press_successes") if "counterpress" in pressures.columns else pd.DataFrame(columns=["player_id", "press_successes"])
+    # Press success
+    press_success_counts = pd.DataFrame(columns=["player_id", "press_successes"])
+    if "counterpress" in pressures.columns:
+        press_success_counts = pressures[
+            pressures["counterpress"].fillna(False) == True
+        ].groupby("player_id").size().reset_index(name="press_successes")
 
     # ── Aerial duels ──
     aerial_total = pd.DataFrame(columns=["player_id", "aerial_total"])
@@ -204,8 +216,8 @@ def aggregate_metrics(events_df, minutes_df):
                 if "duel_outcome" in aerial_duels.columns:
                     won_mask = aerial_duels["duel_outcome"].astype(str).str.contains("Won|Success", case=False, na=False)
                     aerial_wins = aerial_duels[won_mask].groupby("player_id").size().reset_index(name="aerial_wins")
-    except Exception as e:
-        print(f"       ⚠ Aerial duel calculation skipped: {e}")
+    except Exception:
+        pass
 
     # ── Carries (distance) ──
     carries = events_df[events_df["type"] == "Carry"]
@@ -244,20 +256,18 @@ def aggregate_metrics(events_df, minutes_df):
             players = players.merge(mdf, on="player_id", how="left")
 
     players = players.fillna(0)
-    print(f"       Aggregated metrics for {len(players)} players.")
     return players
 
 
 def compute_per90_and_normalize(players_df):
     """
     Convert raw counts to per-90 values, then normalise each metric
-    to a 0–100 scale across the player pool.
+    to a 0–100 scale within this competition/season pool.
     """
-    print("[5/6] Computing per-90 metrics and normalizing ...")
-
     # Filter minimum minutes
     df = players_df[players_df["minutes_played"] >= MIN_MINUTES].copy()
-    print(f"       {len(df)} players meet the {MIN_MINUTES}-minute threshold.")
+    if df.empty:
+        return df
 
     per90_factor = df["minutes_played"] / 90.0
 
@@ -289,7 +299,7 @@ def compute_per90_and_normalize(players_df):
     )
     df["distance_p90"] = df["carry_distance"] / per90_factor
 
-    # Metrics to normalise (0-100 scale)
+    # Metrics to normalise (0-100 scale) — per-competition normalization
     metrics_to_normalize = [
         "shots_p90", "xg_p90", "shot_conversion",
         "prog_passes_p90", "pass_completion", "key_passes_p90",
@@ -304,7 +314,6 @@ def compute_per90_and_normalize(players_df):
         else:
             df[metric] = 50.0  # If all values are the same
 
-    print("       Normalisation complete.")
     return df
 
 
@@ -327,11 +336,13 @@ def derive_position(events_df, player_id):
     return "MF"  # default fallback
 
 
-def export_json(df, events_df):
+def format_players(df, events_df, competition_name, season_name, gender, country):
     """
-    Format the final DataFrame to the agreed schema and write to players.json.
+    Format the final DataFrame to the agreed schema with competition metadata.
+    Returns a list of dicts.
     """
-    print("[6/6] Exporting players.json ...")
+    if df.empty:
+        return []
 
     output_fields = [
         "name", "player_id", "position", "age", "minutes_played",
@@ -347,9 +358,9 @@ def export_json(df, events_df):
     # Rename player column
     df = df.rename(columns={"player": "name"})
 
-    # Approximate age (season 2015/16, assume average age ~25 as placeholder)
+    # Approximate age (placeholder)
     if "age" not in df.columns:
-        df["age"] = 25  # Will be refined if birth_date data is available
+        df["age"] = 25
 
     df["minutes_played"] = df["minutes_played"].astype(int)
     df["player_id"] = df["player_id"].astype(int)
@@ -359,48 +370,141 @@ def export_json(df, events_df):
     for col in output.select_dtypes(include=["float64"]).columns:
         output[col] = output[col].round(1)
 
+    # Add competition metadata
+    output["competition"] = competition_name
+    output["season"] = season_name
+    output["gender"] = gender
+    output["country"] = country
+
     # Sort by name
     output = output.sort_values("name").reset_index(drop=True)
 
-    # Write JSON
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     records = output.to_dict(orient="records")
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(records, f, indent=2, ensure_ascii=False)
-
-    print(f"       ✅ Exported {len(records)} players to {OUTPUT_FILE}")
     return records
 
 
-# ─────────────────────────────────────────────
+def process_competition_season(comp_row):
+    """
+    Process a single competition/season combination through the full pipeline.
+    Returns a list of player dicts, or an empty list on failure.
+    """
+    comp_id = int(comp_row["competition_id"])
+    season_id = int(comp_row["season_id"])
+    comp_name = comp_row["competition_name"]
+    season_name = comp_row["season_name"]
+    gender = comp_row["competition_gender"]
+    country = comp_row.get("country_name", "Unknown")
+
+    cache_file = CACHE_DIR / f"{comp_id}_{season_id}.json"
+
+    # Check cache
+    if cache_file.exists():
+        print(f"  >> Cache hit: {comp_name} {season_name} ({gender})")
+        with open(cache_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    label = f"{comp_name} {season_name} ({gender}, {country})"
+    print(f"\n  -> Processing: {label}")
+
+    try:
+        # Step 1: Fetch matches
+        matches = fetch_matches(comp_id, season_id)
+        if matches.empty:
+            print(f"    [!] No matches found - skipping.")
+            return []
+        print(f"    Matches: {len(matches)}")
+
+        # Step 2: Fetch events
+        print(f"    Fetching events for {len(matches)} matches ...")
+        events_df = fetch_all_events(matches)
+        if events_df.empty:
+            print(f"    [!] No events found - skipping.")
+            return []
+        print(f"    Events: {len(events_df):,}")
+
+        # Step 3: Calculate minutes
+        minutes_df = calculate_minutes(events_df, matches)
+        print(f"    Tracked {len(minutes_df)} unique players.")
+
+        # Step 4: Aggregate metrics
+        players_df = aggregate_metrics(events_df, minutes_df)
+        print(f"    Aggregated metrics for {len(players_df)} players.")
+
+        # Step 5: Per-90 + normalise (per-competition normalization)
+        normalised_df = compute_per90_and_normalize(players_df)
+        qualified = len(normalised_df)
+        print(f"    {qualified} players meet the {MIN_MINUTES}-min threshold.")
+
+        if normalised_df.empty:
+            print(f"    [!] No qualifying players - skipping.")
+            # Save empty cache to avoid re-processing
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump([], f)
+            return []
+
+        # Step 6: Format
+        records = format_players(
+            normalised_df, events_df,
+            comp_name, season_name, gender, country
+        )
+        print(f"    [OK] {len(records)} players exported.")
+
+        # Save to cache
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump(records, f, indent=2, ensure_ascii=False)
+
+        return records
+
+    except Exception as e:
+        print(f"    [ERROR] Error processing {label}: {e}")
+        return []
+
+
+# ---------------------------------------------
 # MAIN
-# ─────────────────────────────────────────────
+# ---------------------------------------------
 def main():
-    print("=" * 60)
-    print("  xScout Data Pipeline — StatsBomb → players.json")
-    print("=" * 60)
+    print("=" * 70)
+    print("  xScout Data Pipeline - All StatsBomb Open Data")
+    print("  (all competitions, all seasons, male + female)")
+    print("=" * 70)
     print()
 
-    # Step 1: Fetch matches
-    matches = fetch_matches()
+    start_time = time.time()
 
-    # Step 2: Fetch all events
-    events_df = fetch_all_events(matches)
+    # Fetch all available competitions
+    comps = fetch_all_competitions()
 
-    # Step 3: Calculate minutes played
-    minutes_df = calculate_minutes(events_df, matches)
+    all_players = []
+    total = len(comps)
 
-    # Step 4: Aggregate metrics
-    players_df = aggregate_metrics(events_df, minutes_df)
+    for idx, (_, row) in enumerate(comps.iterrows()):
+        comp_name = row["competition_name"]
+        season_name = row["season_name"]
+        gender = row["competition_gender"]
+        print(f"\n{'-' * 60}")
+        print(f"[{idx + 1}/{total}] {comp_name} - {season_name} ({gender})")
+        print(f"{'-' * 60}")
 
-    # Step 5: Per-90 + normalise
-    normalised_df = compute_per90_and_normalize(players_df)
+        records = process_competition_season(row)
+        all_players.extend(records)
+        print(f"  Running total: {len(all_players)} players")
 
-    # Step 6: Export
-    export_json(normalised_df, events_df)
+    # Write final merged JSON
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    all_players.sort(key=lambda p: p.get("name", ""))
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(all_players, f, indent=2, ensure_ascii=False)
 
-    print()
-    print("Pipeline complete! 🎉")
+    elapsed = time.time() - start_time
+    print(f"\n{'=' * 70}")
+    print(f"  Pipeline complete!")
+    print(f"  Total players: {len(all_players)}")
+    print(f"  Output: {OUTPUT_FILE}")
+    print(f"  Time elapsed: {elapsed / 60:.1f} minutes")
+    print(f"{'=' * 70}")
 
 
 if __name__ == "__main__":
