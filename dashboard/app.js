@@ -20,12 +20,12 @@ const METRICS = [
 // ─────────────────────────────────────────────
 function initApp() {
   // Initialize Google Charts
-  google.charts.load('current', {'packages':['corechart']});
+  google.charts.load('current', { 'packages': ['corechart'] });
   google.charts.setOnLoadCallback(() => {
     googleChartsLoaded = true;
     console.log('✅ Google Charts loaded successfully');
   });
-  
+
   // Populate global filters
   populateGlobalFilters();
   document.getElementById('filter-count').textContent = `${PLAYERS.length} player${PLAYERS.length !== 1 ? 's' : ''}`;
@@ -66,15 +66,15 @@ function renderAdvancedOverview() {
   const p = PLAYERS[document.getElementById('overview-select').value];
   if (!p) return;
   const container = document.getElementById('overview-content');
-  
+
   // Top 5 strengths, bottom 3 weaknesses
   const sorted = [...METRICS].sort((a, b) => (p[b] || 0) - (p[a] || 0));
   const top5 = sorted.slice(0, 5);
   const bot3 = sorted.slice(-3);
-  
+
   const compInfo = p.competition ? `${p.competition} · ${p.season || ''}` : '';
   const genderBadge = p.gender ? `<span class="tag" style="background:rgba(184,255,87,0.1);border-color:rgba(184,255,87,0.3);color:#b8ff57">${p.gender}</span>` : '';
-  
+
   // Metric icons mapping
   const metricIcons = {
     'shots_p90': '⚽',
@@ -89,7 +89,7 @@ function renderAdvancedOverview() {
     'aerial_win_rate': '🦅',
     'distance_p90': '📍'
   };
-  
+
   container.innerHTML = `
     <div class="player-header-card">
       <div class="player-avatar">${initials(p.name)}</div>
@@ -108,13 +108,13 @@ function renderAdvancedOverview() {
       </div>
       <div class="overall-badge">
         <div class="overall-num">${p.overall}</div>
-        <div class="overall-label">Overall</div>
+        <div class="overall-label">Avg Percentile</div>
       </div>
     </div>
     
     <div class="grid-3">
       <div class="card">
-        <div class="card-label">Attribute Breakdown</div>
+        <div class="card-label">Attribute Scores (0-100 Percentile)</div>
         <div class="attribute-chart-container">
           <div id="attribute-bars-chart" style="width:100%;height:400px;margin:10px 0;"></div>
         </div>
@@ -170,7 +170,7 @@ function renderAdvancedOverview() {
             </div>`;
   }).join('')}
         <div class="divider"></div>
-        <div class="card-label">Performance Metrics</div>
+        <div class="card-label">Key Metrics (Percentile Rank)</div>
         <div class="metric-grid">
           <div class="metric-item" style="animation-delay: 0.1s">
             <span class="metric-label">⚽ Shots p90</span>
@@ -192,11 +192,11 @@ function renderAdvancedOverview() {
       </div>
     </div>
   `;
-  
+
   // Render all visualizations
   setTimeout(() => {
     drawRadar('#radar-overview', [p], RADAR_AXES, 220, [['#00e5ff', 0.25]]);
-    
+
     // Render attribute bars chart
     if (googleChartsLoaded) {
       drawAttributeBars('#attribute-bars-chart', p);
@@ -209,7 +209,7 @@ function renderAdvancedOverview() {
       }, 500);
     }
   }, 150);
-  
+
   // Render heatmap and passing network with slight delay
   console.log('🎯 Calling drawPassingNetwork with selector:', '#passing-network');
   console.log('👥 Player object:', p);
@@ -228,12 +228,12 @@ function renderAdvancedOverview() {
 // ─────────────────────────────────────────────
 function initApp() {
   // Initialize Google Charts
-  google.charts.load('current', {'packages':['corechart']});
+  google.charts.load('current', { 'packages': ['corechart'] });
   google.charts.setOnLoadCallback(() => {
     googleChartsLoaded = true;
     console.log('✅ Google Charts loaded successfully');
   });
-  
+
   // Populate global filters
   populateGlobalFilters();
   document.getElementById('filter-count').textContent = `${PLAYERS.length} player${PLAYERS.length !== 1 ? 's' : ''}`;
@@ -274,15 +274,15 @@ function renderAdvancedOverview() {
   const p = PLAYERS[document.getElementById('overview-select').value];
   if (!p) return;
   const container = document.getElementById('overview-content');
-  
+
   // Top 5 strengths, bottom 3 weaknesses
   const sorted = [...METRICS].sort((a, b) => (p[b] || 0) - (p[a] || 0));
   const top5 = sorted.slice(0, 5);
   const bot3 = sorted.slice(-3);
-  
+
   const compInfo = p.competition ? `${p.competition} · ${p.season || ''}` : '';
   const genderBadge = p.gender ? `<span class="tag" style="background:rgba(184,255,87,0.1);border-color:rgba(184,255,87,0.3);color:#b8ff57">${p.gender}</span>` : '';
-  
+
   // Metric icons mapping
   const metricIcons = {
     'shots_p90': '⚽',
@@ -297,7 +297,7 @@ function renderAdvancedOverview() {
     'aerial_win_rate': '🦅',
     'distance_p90': '📍'
   };
-  
+
   container.innerHTML = `
     <div class="player-header-card">
       <div class="player-avatar">${initials(p.name)}</div>
@@ -316,13 +316,13 @@ function renderAdvancedOverview() {
       </div>
       <div class="overall-badge">
         <div class="overall-num">${p.overall}</div>
-        <div class="overall-label">Overall</div>
+        <div class="overall-label">Avg Percentile</div>
       </div>
     </div>
     
     <div class="grid-3">
       <div class="card">
-        <div class="card-label">Attribute Breakdown</div>
+        <div class="card-label">Attribute Scores (0-100 Percentile)</div>
         <div class="attribute-chart-container">
           <div id="attribute-bars-chart" style="width:100%;height:400px;margin:10px 0;"></div>
         </div>
@@ -378,7 +378,7 @@ function renderAdvancedOverview() {
             </div>`;
   }).join('')}
         <div class="divider"></div>
-        <div class="card-label">Performance Metrics</div>
+        <div class="card-label">Key Metrics (Percentile Rank)</div>
         <div class="metric-grid">
           <div class="metric-item" style="animation-delay: 0.1s">
             <span class="metric-label">⚽ Shots p90</span>
@@ -400,11 +400,11 @@ function renderAdvancedOverview() {
       </div>
     </div>
   `;
-  
+
   // Render all visualizations
   setTimeout(() => {
     drawRadar('#radar-overview', [p], RADAR_AXES, 220, [['#00e5ff', 0.25]]);
-    
+
     // Render attribute bars chart
     if (googleChartsLoaded) {
       drawAttributeBars('#attribute-bars-chart', p);
@@ -417,7 +417,7 @@ function renderAdvancedOverview() {
       }, 500);
     }
   }, 150);
-  
+
   // Render heatmap and passing network with slight delay
   console.log('🎯 Calling drawPassingNetwork with selector:', '#passing-network');
   console.log('👥 Player object:', p);
@@ -431,17 +431,17 @@ function renderAdvancedOverview() {
 // UTILITIES
 // ─────────────────────────────────────────────
 const METRIC_LABELS = {
-  shots_p90: 'Shots',
-  xg_p90: 'xG',
-  shot_conversion: 'Finishing',
-  prog_passes_p90: 'Prog Passes',
-  pass_completion: 'Pass Acc',
-  key_passes_p90: 'Key Passes',
-  dribbles_p90: 'Dribbles',
-  pressures_p90: 'Pressures',
-  press_success: 'Press Win',
-  aerial_win_rate: 'Aerial Win',
-  distance_p90: 'Distance'
+  shots_p90: 'Shots (Score)',
+  xg_p90: 'xG (Score)',
+  shot_conversion: 'Finishing (Score)',
+  prog_passes_p90: 'Prog Passes (Score)',
+  pass_completion: 'Pass Acc (Score)',
+  key_passes_p90: 'Key Passes (Score)',
+  dribbles_p90: 'Dribbles (Score)',
+  pressures_p90: 'Pressures (Score)',
+  press_success: 'Press Win (Score)',
+  aerial_win_rate: 'Aerial Win (Score)',
+  distance_p90: 'Distance (Score)'
 };
 
 // Radar axes — 6 composite groups for spider chart
@@ -641,11 +641,11 @@ async function loadData() {
     console.log('🚀 Starting data load...');
     console.log('🌍 Checking D3 availability:', typeof d3 !== 'undefined' ? '✅ Available' : '❌ Not available');
     console.log('📊 Checking Google Charts:', typeof google !== 'undefined' && typeof google.charts !== 'undefined' ? '✅ Available' : '❌ Not available');
-    
+
     const response = await fetch('../data/players.json');
     console.log('📥 Response received:', response.status, response.statusText);
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    
+
     ALL_PLAYERS = await response.json();
     console.log('✅ Data parsed successfully. Players loaded:', ALL_PLAYERS.length);
     console.log('📋 Sample player:', ALL_PLAYERS[0]);
@@ -682,12 +682,12 @@ async function loadData() {
 // ─────────────────────────────────────────────
 function initApp() {
   // Initialize Google Charts
-  google.charts.load('current', {'packages':['corechart']});
+  google.charts.load('current', { 'packages': ['corechart'] });
   google.charts.setOnLoadCallback(() => {
     googleChartsLoaded = true;
     console.log('✅ Google Charts loaded successfully');
   });
-  
+
   // Populate global filters
   populateGlobalFilters();
   document.getElementById('filter-count').textContent = `${PLAYERS.length} player${PLAYERS.length !== 1 ? 's' : ''}`;
@@ -1197,10 +1197,10 @@ function calculatePassingMetrics(player) {
     'MF': { short: 0.5, long: 0.3, progressive: 0.2 },
     'FW': { short: 0.4, long: 0.2, progressive: 0.4 }
   };
-  
+
   const multipliers = positionMultipliers[player.position] || positionMultipliers.MF;
   const totalPasses = player.prog_passes_p90 + (player.pass_completion * 0.5);
-  
+
   return {
     shortPasses: Math.round(totalPasses * multipliers.short * (0.8 + Math.random() * 0.4)),
     longPasses: Math.round(totalPasses * multipliers.long * (0.8 + Math.random() * 0.4)),
@@ -1217,7 +1217,7 @@ function drawPassingNetwork(selector, player) {
     pass_completion: player.pass_completion,
     key_passes_p90: player.key_passes_p90
   });
-  
+
   // Check if container exists
   const container = document.querySelector(selector);
   console.log('📦 Container element:', container);
@@ -1225,7 +1225,7 @@ function drawPassingNetwork(selector, player) {
     console.error('❌ Container not found for selector:', selector);
     return;
   }
-  
+
   // Robust D3.js availability check
   if (typeof d3 === 'undefined' || !d3 || typeof d3.select !== 'function') {
     console.error('❌ D3.js not properly loaded or unavailable for passing network');
@@ -1236,28 +1236,28 @@ function drawPassingNetwork(selector, player) {
     }
     return;
   }
-  
+
   try {
     const data = calculatePassingMetrics(player);
     console.log('📈 Calculated passing metrics:', data);
     d3.select(selector).selectAll('*').remove();
-    
+
     const width = 300, height = 200;
     const svg = d3.select(selector)
       .append('svg')
       .attr('width', width)
       .attr('height', height);
-    
+
     // Enhanced background with gradient
     const defs = svg.append('defs');
     const gradient = defs.append('linearGradient')
       .attr('id', 'fieldGradient')
       .attr('x1', '0%').attr('y1', '0%')
       .attr('x2', '0%').attr('y2', '100%');
-      
+
     gradient.append('stop').attr('offset', '0%').attr('stop-color', 'rgba(18,29,46,0.4)');
     gradient.append('stop').attr('offset', '100%').attr('stop-color', 'rgba(13,21,32,0.6)');
-    
+
     svg.append('rect')
       .attr('x', 0).attr('y', 0)
       .attr('width', width).attr('height', height)
@@ -1267,36 +1267,36 @@ function drawPassingNetwork(selector, player) {
       .style('opacity', 0)
       .transition().duration(1000).ease(d3.easeElasticOut)
       .style('opacity', 1);
-    
+
     // Animated pitch markings with glow effect
     svg.append('line')
-      .attr('x1', width/2).attr('y1', 20)
-      .attr('x2', width/2).attr('y2', 20)
+      .attr('x1', width / 2).attr('y1', 20)
+      .attr('x2', width / 2).attr('y2', 20)
       .attr('stroke', 'rgba(30,45,66,0.8)')
       .attr('stroke-width', 1)
       .attr('stroke-dasharray', '6,4')
       .transition().duration(1200).delay(300)
-      .attr('y2', height-20);
-    
+      .attr('y2', height - 20);
+
     // Center circle with pulsing effect
     svg.append('circle')
-      .attr('cx', width/2).attr('cy', height/2)
+      .attr('cx', width / 2).attr('cy', height / 2)
       .attr('r', 0)
       .attr('fill', 'none')
       .attr('stroke', 'rgba(30,45,66,0.8)')
       .attr('stroke-width', 1)
       .transition().duration(1500).delay(500)
       .attr('r', 22);
-    
+
     // Player position indicator with advanced animation
-    const positionY = player.position === 'GK' ? 30 : 
-                     player.position === 'DF' ? 70 :
-                     player.position === 'MF' ? height/2 :
-                     height - 70;
-                     
+    const positionY = player.position === 'GK' ? 30 :
+      player.position === 'DF' ? 70 :
+        player.position === 'MF' ? height / 2 :
+          height - 70;
+
     // Outer glow circle
     const glowCircle = svg.append('circle')
-      .attr('cx', width/2)
+      .attr('cx', width / 2)
       .attr('cy', positionY)
       .attr('r', 0)
       .attr('fill', 'none')
@@ -1317,10 +1317,10 @@ function drawPassingNetwork(selector, player) {
           .attr('opacity', 0)
           .on('end', repeat);
       });
-    
+
     // Main player circle
     const playerCircle = svg.append('circle')
-      .attr('cx', width/2)
+      .attr('cx', width / 2)
       .attr('cy', positionY)
       .attr('r', 0)
       .attr('fill', '#00e5ff')
@@ -1330,24 +1330,24 @@ function drawPassingNetwork(selector, player) {
       .attr('r', 9)
       .transition().duration(500)
       .attr('stroke-width', 2);
-    
+
     // Add subtle inner highlight
     svg.append('circle')
-      .attr('cx', width/2)
+      .attr('cx', width / 2)
       .attr('cy', positionY)
       .attr('r', 4)
       .attr('fill', 'rgba(255,255,255,0.3)')
       .style('opacity', 0)
       .transition().delay(1600).duration(600).style('opacity', 1);
-    
+
     // Enhanced pass connection lines with particle effects
     const connections = [
-      { x1: width/2, y1: positionY, x2: width/4, y2: height/3, count: data.shortPasses, color: '#00e5ff', type: 'short', delay: 400 },
-      { x1: width/2, y1: positionY, x2: width*3/4, y2: height/3, count: data.shortPasses, color: '#00e5ff', type: 'short', delay: 600 },
-      { x1: width/2, y1: positionY, x2: width/3, y2: height*2/3, count: data.longPasses, color: '#b8ff57', type: 'long', delay: 800 },
-      { x1: width/2, y1: positionY, x2: width*2/3, y2: height*2/3, count: data.progressivePasses, color: '#ff5e3a', type: 'progressive', delay: 1000 }
+      { x1: width / 2, y1: positionY, x2: width / 4, y2: height / 3, count: data.shortPasses, color: '#00e5ff', type: 'short', delay: 400 },
+      { x1: width / 2, y1: positionY, x2: width * 3 / 4, y2: height / 3, count: data.shortPasses, color: '#00e5ff', type: 'short', delay: 600 },
+      { x1: width / 2, y1: positionY, x2: width / 3, y2: height * 2 / 3, count: data.longPasses, color: '#b8ff57', type: 'long', delay: 800 },
+      { x1: width / 2, y1: positionY, x2: width * 2 / 3, y2: height * 2 / 3, count: data.progressivePasses, color: '#ff5e3a', type: 'progressive', delay: 1000 }
     ];
-    
+
     connections.forEach((conn, i) => {
       // Main connection line with trail effect
       svg.append('line')
@@ -1361,11 +1361,11 @@ function drawPassingNetwork(selector, player) {
         .attr('x2', conn.x2).attr('y2', conn.y2)
         .attr('stroke-width', Math.max(2, conn.count / 12))
         .attr('opacity', 0.8);
-        
+
       // Animated labels with scale effect
       svg.append('text')
-        .attr('x', (conn.x1 + conn.x2)/2)
-        .attr('y', (conn.y1 + conn.y2)/2 - 8)
+        .attr('x', (conn.x1 + conn.x2) / 2)
+        .attr('y', (conn.y1 + conn.y2) / 2 - 8)
         .attr('fill', conn.color)
         .attr('font-family', 'DM Mono, monospace')
         .attr('font-size', '11px')
@@ -1377,11 +1377,11 @@ function drawPassingNetwork(selector, player) {
         .transition().delay(conn.delay + 700).duration(600)
         .attr('opacity', 1)
         .attr('transform', 'scale(1)');
-        
+
       // Connection type indicator
       const midX = (conn.x1 + conn.x2) / 2;
       const midY = (conn.y1 + conn.y2) / 2;
-      
+
       svg.append('circle')
         .attr('cx', midX)
         .attr('cy', midY)
@@ -1395,17 +1395,17 @@ function drawPassingNetwork(selector, player) {
         .attr('r', 2)
         .attr('opacity', 0.9);
     });
-    
+
     // Enhanced legend with clear attribute explanations
     const legendGroup = svg.append('g')
-      .attr('transform', `translate(12,${height-55})`);
-      
+      .attr('transform', `translate(12,${height - 55})`);
+
     // Apply transition separately
     legendGroup
       .style('opacity', 0)
       .transition().delay(1400).duration(700)
       .style('opacity', 1);
-      
+
     // Legend background with better styling
     legendGroup.append('rect')
       .attr('x', -8).attr('y', -8)
@@ -1414,14 +1414,14 @@ function drawPassingNetwork(selector, player) {
       .attr('stroke', 'rgba(30,45,66,0.7)')
       .attr('stroke-width', 1)
       .attr('rx', 5);
-      
+
     // Clear attribute mapping
     const legendItems = [
       { color: '#00e5ff', label: 'Short Passes', icon: '🔄' },
       { color: '#b8ff57', label: 'Long Passes', icon: '⏩' },
       { color: '#ff5e3a', label: 'Progressive', icon: '🚀' }
     ];
-    
+
     legendItems.forEach((item, i) => {
       // Color indicator
       legendGroup.append('circle')
@@ -1429,7 +1429,7 @@ function drawPassingNetwork(selector, player) {
         .attr('cy', i * 18 + 5)
         .attr('r', 4)
         .attr('fill', item.color);
-        
+
       // Icon
       legendGroup.append('text')
         .attr('x', 20)
@@ -1437,7 +1437,7 @@ function drawPassingNetwork(selector, player) {
         .attr('fill', item.color)
         .attr('font-size', '12px')
         .text(item.icon);
-        
+
       // Label
       legendGroup.append('text')
         .attr('x', 35)
@@ -1480,18 +1480,18 @@ function generatePositionalActivityData(player) {
     'MF': { x: 0.5, y: 0.5, spread: 0.6 },
     'FW': { x: 0.5, y: 0.7, spread: 0.5 }
   };
-  
+
   const base = basePositions[player.position] || basePositions.MF;
   const activityLevel = player.distance_p90 / 100; // Normalize distance
-  
+
   const activityPoints = [];
   const pointCount = Math.floor(150 + activityLevel * 250);
-  
+
   for (let i = 0; i < pointCount; i++) {
     // Generate clustered points around player's typical position
     const x = base.x + (Math.random() - 0.5) * base.spread * (0.5 + activityLevel * 0.5);
     const y = base.y + (Math.random() - 0.5) * base.spread * (0.5 + activityLevel * 0.5);
-    
+
     // Keep within field bounds
     if (x > 0.1 && x < 0.9 && y > 0.1 && y < 0.9) {
       activityPoints.push({
@@ -1502,13 +1502,13 @@ function generatePositionalActivityData(player) {
       });
     }
   }
-  
+
   return activityPoints;
 }
 
 function drawPositionalHeatmap(selector, player) {
   console.log('🎨 Drawing positional heatmap for:', player.name, player.position);
-  
+
   // Robust D3.js availability check
   if (typeof d3 === 'undefined' || !d3 || typeof d3.select !== 'function') {
     console.error('❌ D3.js not properly loaded or unavailable');
@@ -1519,18 +1519,18 @@ function drawPositionalHeatmap(selector, player) {
     }
     return;
   }
-  
+
   try {
     const data = generatePositionalActivityData(player);
     console.log('📊 Generated', data.length, 'activity points');
     d3.select(selector).selectAll('*').remove();
-    
+
     const width = 300, height = 200;
     const svg = d3.select(selector)
       .append('svg')
       .attr('width', width)
       .attr('height', height);
-    
+
     // Enhanced background with subtle field texture
     const defs = svg.append('defs');
     const pattern = defs.append('pattern')
@@ -1538,29 +1538,29 @@ function drawPositionalHeatmap(selector, player) {
       .attr('width', 20)
       .attr('height', 20)
       .attr('patternUnits', 'userSpaceOnUse');
-      
+
     pattern.append('rect')
       .attr('width', 20)
       .attr('height', 20)
       .attr('fill', 'rgba(18,29,46,0.4)');
-      
+
     pattern.append('path')
       .attr('d', 'M 0 10 L 20 10 M 10 0 L 10 20')
       .attr('stroke', 'rgba(30,45,66,0.2)')
       .attr('stroke-width', 0.5);
-    
+
     svg.append('rect')
       .attr('x', 0).attr('y', 0)
       .attr('width', width).attr('height', height)
       .attr('fill', 'url(#fieldPattern)')
       .attr('stroke', 'rgba(30,45,66,0.7)')
       .attr('stroke-width', 1.5);
-    
+
     // Enhanced heatmap circles with better clustering
     const intensityScale = d3.scaleLinear()
       .domain([0, 1])
       .range(['rgba(0,229,255,0.3)', 'rgba(0,229,255,0.9)']);
-    
+
     // Add subtle background activity
     svg.selectAll('.background-activity')
       .data(d3.range(30))
@@ -1570,7 +1570,7 @@ function drawPositionalHeatmap(selector, player) {
       .attr('cy', () => Math.random() * height)
       .attr('r', () => Math.random() * 3 + 1)
       .attr('fill', 'rgba(0,229,255,0.1)');
-    
+
     // Main activity points - immediate rendering
     svg.selectAll('.activity-point')
       .data(data)
@@ -1582,7 +1582,7 @@ function drawPositionalHeatmap(selector, player) {
       .attr('fill', d => intensityScale(d.intensity))
       .attr('stroke', 'none')
       .attr('opacity', d => 0.6 + d.intensity * 0.4);
-    
+
     // Player position marker
     const positionMarkers = {
       'GK': { x: 0.5, y: 0.1, label: 'Goalkeeper' },
@@ -1590,9 +1590,9 @@ function drawPositionalHeatmap(selector, player) {
       'MF': { x: 0.5, y: 0.5, label: 'Midfielder' },
       'FW': { x: 0.5, y: 0.7, label: 'Forward' }
     };
-    
+
     const marker = positionMarkers[player.position] || positionMarkers.MF;
-    
+
     // Outer glow ring
     svg.append('circle')
       .attr('cx', marker.x * width)
@@ -1602,7 +1602,7 @@ function drawPositionalHeatmap(selector, player) {
       .attr('stroke', '#00e5ff')
       .attr('stroke-width', 2)
       .attr('opacity', 0.7);
-    
+
     // Main player marker
     svg.append('circle')
       .attr('cx', marker.x * width)
@@ -1611,7 +1611,7 @@ function drawPositionalHeatmap(selector, player) {
       .attr('fill', '#00e5ff')
       .attr('stroke', '#ffffff')
       .attr('stroke-width', 2);
-    
+
     // Position label
     svg.append('text')
       .attr('x', marker.x * width)
@@ -1621,19 +1621,19 @@ function drawPositionalHeatmap(selector, player) {
       .attr('font-size', '10px')
       .attr('text-anchor', 'middle')
       .text(marker.label);
-    
+
     // Pitch markings
     svg.append('line')
-      .attr('x1', width/2).attr('y1', 20)
-      .attr('x2', width/2).attr('y2', height-20)
+      .attr('x1', width / 2).attr('y1', 20)
+      .attr('x2', width / 2).attr('y2', height - 20)
       .attr('stroke', 'rgba(30,45,66,0.8)')
       .attr('stroke-width', 1)
       .attr('stroke-dasharray', '6,4');
-    
+
     // Legend - using direct SVG elements instead of D3 selections
     const legendGroup = svg.append('g')
-      .attr('transform', `translate(${width-90},15)`);
-      
+      .attr('transform', `translate(${width - 90},15)`);
+
     // Legend background
     legendGroup.append('rect')
       .attr('x', -8).attr('y', -8)
@@ -1642,13 +1642,13 @@ function drawPositionalHeatmap(selector, player) {
       .attr('stroke', 'rgba(30,45,66,0.7)')
       .attr('stroke-width', 1)
       .attr('rx', 5);
-      
+
     // Color scale indicators
     const legendColors = [
       { offset: 0, color: 'rgba(0,229,255,0.3)', label: 'Low Activity' },
       { offset: 1, color: 'rgba(0,229,255,0.9)', label: 'High Activity' }
     ];
-    
+
     legendColors.forEach((item, i) => {
       legendGroup.append('rect')
         .attr('x', 0)
@@ -1658,7 +1658,7 @@ function drawPositionalHeatmap(selector, player) {
         .attr('fill', item.color)
         .attr('stroke', 'rgba(0,229,255,0.5)')
         .attr('stroke-width', 1);
-        
+
       legendGroup.append('text')
         .attr('x', 20)
         .attr('y', i * 25 + 12)
@@ -1667,7 +1667,7 @@ function drawPositionalHeatmap(selector, player) {
         .attr('font-size', '9px')
         .text(item.label);
     });
-    
+
     // Player position indicator
     legendGroup.append('circle')
       .attr('cx', 7)
@@ -1676,7 +1676,7 @@ function drawPositionalHeatmap(selector, player) {
       .attr('fill', '#00e5ff')
       .attr('stroke', '#ffffff')
       .attr('stroke-width', 1);
-      
+
     legendGroup.append('text')
       .attr('x', 20)
       .attr('y', 68)
@@ -1684,7 +1684,7 @@ function drawPositionalHeatmap(selector, player) {
       .attr('font-family', 'DM Mono, monospace')
       .attr('font-size', '9px')
       .text(`${player.position} Position`);
-      
+
     console.log('✅ Heatmap rendered successfully');
   } catch (error) {
     console.error('💥 Error rendering heatmap:', error);
@@ -1701,12 +1701,12 @@ function drawAttributeBars(selector, player) {
     setTimeout(() => drawAttributeBars(selector, player), 100);
     return;
   }
-  
+
   const data = new google.visualization.DataTable();
   data.addColumn('string', 'Attribute');
   data.addColumn('number', 'Value');
-  data.addColumn({type: 'string', role: 'style'});
-  
+  data.addColumn({ type: 'string', role: 'style' });
+
   const rows = METRICS.map(attr => {
     const value = player[attr] || 0;
     let color;
@@ -1716,9 +1716,9 @@ function drawAttributeBars(selector, player) {
     else color = '#ff5e3a';
     return [METRIC_LABELS[attr] || attr, value, color];
   });
-  
+
   data.addRows(rows);
-  
+
   const options = {
     title: 'Player Attributes',
     titleTextStyle: {
@@ -1743,7 +1743,7 @@ function drawAttributeBars(selector, player) {
     },
     bar: { groupWidth: '80%' }
   };
-  
+
   const chart = new google.visualization.ColumnChart(document.querySelector(selector));
   chart.draw(data, options);
 }
@@ -1753,15 +1753,15 @@ function renderAdvancedOverview() {
   const p = PLAYERS[document.getElementById('overview-select').value];
   if (!p) return;
   const container = document.getElementById('overview-content');
-  
+
   // Top 5 strengths, bottom 3 weaknesses
   const sorted = [...METRICS].sort((a, b) => (p[b] || 0) - (p[a] || 0));
   const top5 = sorted.slice(0, 5);
   const bot3 = sorted.slice(-3);
-  
+
   const compInfo = p.competition ? `${p.competition} · ${p.season || ''}` : '';
   const genderBadge = p.gender ? `<span class="tag" style="background:rgba(184,255,87,0.1);border-color:rgba(184,255,87,0.3);color:#b8ff57">${p.gender}</span>` : '';
-  
+
   // Metric icons mapping
   const metricIcons = {
     'shots_p90': '⚽',
@@ -1776,7 +1776,7 @@ function renderAdvancedOverview() {
     'aerial_win_rate': '🦅',
     'distance_p90': '📍'
   };
-  
+
   container.innerHTML = `
     <div class="player-header-card">
       <div class="player-avatar">${initials(p.name)}</div>
@@ -1879,11 +1879,11 @@ function renderAdvancedOverview() {
       </div>
     </div>
   `;
-  
+
   // Render all visualizations
   setTimeout(() => {
     drawRadar('#radar-overview', [p], RADAR_AXES, 220, [['#00e5ff', 0.25]]);
-    
+
     // Render attribute bars chart
     if (googleChartsLoaded) {
       drawAttributeBars('#attribute-bars-chart', p);
@@ -1896,7 +1896,7 @@ function renderAdvancedOverview() {
       }, 500);
     }
   }, 150);
-  
+
   // Render heatmap and passing network with slight delay
   console.log('🎯 Calling drawPassingNetwork with selector:', '#passing-network');
   console.log('👥 Player object:', p);
