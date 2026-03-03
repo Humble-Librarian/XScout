@@ -1703,25 +1703,73 @@ function drawAttributeBars(selector, player) {
   // Helper: clamp value between 0–100
   function clamp(v) { return Math.round(Math.max(0, Math.min(100, v))); }
 
-  // Derive all 16 FIFA attributes from the available metrics
+  // Derive all 16 FIFA attributes — position-aware formulas
   const p = player;
+  const pos = (p.position || '').toUpperCase();
+  const isFW = pos === 'FW';
+  const isDF = pos === 'DF';
+  const isGK = pos === 'GK';
+  const isMF = pos === 'MF';
+
+  // --- Position-aware attribute builders ---
+  let positioning, finishing, shooting, longshots, defending, reactions;
+  let pace, dribbling, stamina, physical;
+
+  if (isFW) {
+    // Attackers: pace = explosive speed with the ball
+    pace = clamp((p.dribbles_p90 || 0) * 0.5 + (p.distance_p90 || 0) * 0.3 + (p.pressures_p90 || 0) * 0.2);
+    dribbling = clamp((p.dribbles_p90 || 0) * 0.7 + (p.distance_p90 || 0) * 0.3);
+    stamina = clamp((p.distance_p90 || 0) * 0.5 + (p.pressures_p90 || 0) * 0.3 + (p.dribbles_p90 || 0) * 0.2);
+    physical = clamp((p.aerial_win_rate || 0) * 0.3 + (p.distance_p90 || 0) * 0.35 + (p.pressures_p90 || 0) * 0.35);
+    positioning = clamp((p.xg_p90 || 0) * 0.5 + (p.shots_p90 || 0) * 0.3 + (p.shot_conversion || 0) * 0.2);
+    finishing = clamp((p.shot_conversion || 0) * 0.6 + (p.xg_p90 || 0) * 0.4);
+    shooting = clamp((p.shots_p90 || 0) * 0.5 + (p.xg_p90 || 0) * 0.3 + (p.shot_conversion || 0) * 0.2);
+    longshots = clamp((p.shots_p90 || 0) * 0.6 + (p.xg_p90 || 0) * 0.2 + (p.distance_p90 || 0) * 0.2);
+    defending = clamp((p.pressures_p90 || 0) * 0.5 + (p.press_success || 0) * 0.3 + (p.aerial_win_rate || 0) * 0.2);
+    reactions = clamp((p.dribbles_p90 || 0) * 0.4 + (p.press_success || 0) * 0.3 + (p.shots_p90 || 0) * 0.3);
+  } else if (isDF || isGK) {
+    // Defenders/GK: pace = closing-down speed & pitch coverage
+    pace = clamp((p.distance_p90 || 0) * 0.4 + (p.pressures_p90 || 0) * 0.4 + (p.press_success || 0) * 0.2);
+    dribbling = clamp((p.dribbles_p90 || 0) * 0.4 + (p.prog_passes_p90 || 0) * 0.3 + (p.pass_completion || 0) * 0.3);
+    stamina = clamp((p.distance_p90 || 0) * 0.4 + (p.pressures_p90 || 0) * 0.4 + (p.aerial_win_rate || 0) * 0.2);
+    physical = clamp((p.aerial_win_rate || 0) * 0.4 + (p.pressures_p90 || 0) * 0.3 + (p.distance_p90 || 0) * 0.3);
+    positioning = clamp((p.press_success || 0) * 0.4 + (p.pressures_p90 || 0) * 0.35 + (p.aerial_win_rate || 0) * 0.25);
+    finishing = clamp((p.shot_conversion || 0) * 0.5 + (p.xg_p90 || 0) * 0.3 + (p.shots_p90 || 0) * 0.2);
+    shooting = clamp((p.shots_p90 || 0) * 0.4 + (p.xg_p90 || 0) * 0.3 + (p.shot_conversion || 0) * 0.3);
+    longshots = clamp((p.shots_p90 || 0) * 0.4 + (p.prog_passes_p90 || 0) * 0.3 + (p.distance_p90 || 0) * 0.3);
+    defending = clamp((p.pressures_p90 || 0) * 0.35 + (p.press_success || 0) * 0.35 + (p.aerial_win_rate || 0) * 0.3);
+    reactions = clamp((p.press_success || 0) * 0.5 + (p.pressures_p90 || 0) * 0.3 + (p.aerial_win_rate || 0) * 0.2);
+  } else {
+    // Midfielders: balanced blend
+    pace = clamp((p.distance_p90 || 0) * 0.35 + (p.dribbles_p90 || 0) * 0.35 + (p.pressures_p90 || 0) * 0.3);
+    dribbling = clamp((p.dribbles_p90 || 0) * 0.6 + (p.distance_p90 || 0) * 0.2 + (p.key_passes_p90 || 0) * 0.2);
+    stamina = clamp((p.distance_p90 || 0) * 0.4 + (p.pressures_p90 || 0) * 0.35 + (p.dribbles_p90 || 0) * 0.25);
+    physical = clamp((p.aerial_win_rate || 0) * 0.3 + (p.distance_p90 || 0) * 0.35 + (p.pressures_p90 || 0) * 0.35);
+    positioning = clamp((p.xg_p90 || 0) * 0.3 + (p.pressures_p90 || 0) * 0.25 + (p.press_success || 0) * 0.25 + (p.key_passes_p90 || 0) * 0.2);
+    finishing = clamp((p.shot_conversion || 0) * 0.5 + (p.xg_p90 || 0) * 0.3 + (p.shots_p90 || 0) * 0.2);
+    shooting = clamp((p.shots_p90 || 0) * 0.4 + (p.xg_p90 || 0) * 0.3 + (p.shot_conversion || 0) * 0.3);
+    longshots = clamp((p.shots_p90 || 0) * 0.5 + (p.xg_p90 || 0) * 0.2 + (p.distance_p90 || 0) * 0.3);
+    defending = clamp((p.pressures_p90 || 0) * 0.4 + (p.press_success || 0) * 0.4 + (p.aerial_win_rate || 0) * 0.2);
+    reactions = clamp((p.press_success || 0) * 0.35 + (p.pressures_p90 || 0) * 0.3 + (p.dribbles_p90 || 0) * 0.35);
+  }
+
   const fifaAttrs = [
-    { name: 'PACE', value: clamp((p.distance_p90 || 0) * 0.6 + (p.dribbles_p90 || 0) * 0.4) },
-    { name: 'SHOOTING', value: clamp((p.shots_p90 || 0) * 0.5 + (p.xg_p90 || 0) * 0.3 + (p.shot_conversion || 0) * 0.2) },
+    { name: 'PACE', value: pace },
+    { name: 'SHOOTING', value: shooting },
     { name: 'PASSING', value: clamp((p.pass_completion || 0) * 0.5 + (p.prog_passes_p90 || 0) * 0.3 + (p.key_passes_p90 || 0) * 0.2) },
-    { name: 'DRIBBLING', value: clamp((p.dribbles_p90 || 0) * 0.7 + (p.distance_p90 || 0) * 0.3) },
-    { name: 'DEFENDING', value: clamp((p.pressures_p90 || 0) * 0.4 + (p.press_success || 0) * 0.4 + (p.aerial_win_rate || 0) * 0.2) },
-    { name: 'PHYSICAL', value: clamp((p.aerial_win_rate || 0) * 0.35 + (p.distance_p90 || 0) * 0.35 + (p.pressures_p90 || 0) * 0.3) },
-    { name: 'FINISHING', value: clamp((p.shot_conversion || 0) * 0.6 + (p.xg_p90 || 0) * 0.4) },
+    { name: 'DRIBBLING', value: dribbling },
+    { name: 'DEFENDING', value: defending },
+    { name: 'PHYSICAL', value: physical },
+    { name: 'FINISHING', value: finishing },
     { name: 'HEADING', value: clamp((p.aerial_win_rate || 0) * 0.8 + (p.pressures_p90 || 0) * 0.2) },
-    { name: 'LONGSHOTS', value: clamp((p.shots_p90 || 0) * 0.5 + (p.xg_p90 || 0) * 0.2 + (p.distance_p90 || 0) * 0.3) },
+    { name: 'LONGSHOTS', value: longshots },
     { name: 'CROSSING', value: clamp((p.key_passes_p90 || 0) * 0.5 + (p.prog_passes_p90 || 0) * 0.3 + (p.pass_completion || 0) * 0.2) },
     { name: 'VISION', value: clamp((p.key_passes_p90 || 0) * 0.4 + (p.prog_passes_p90 || 0) * 0.4 + (p.pass_completion || 0) * 0.2) },
-    { name: 'STAMINA', value: clamp((p.distance_p90 || 0) * 0.6 + (p.pressures_p90 || 0) * 0.4) },
+    { name: 'STAMINA', value: stamina },
     { name: 'STRENGTH', value: clamp((p.aerial_win_rate || 0) * 0.5 + (p.pressures_p90 || 0) * 0.3 + (p.press_success || 0) * 0.2) },
     { name: 'AGGRESSION', value: clamp((p.pressures_p90 || 0) * 0.5 + (p.press_success || 0) * 0.3 + (p.distance_p90 || 0) * 0.2) },
-    { name: 'POSITIONING', value: clamp((p.xg_p90 || 0) * 0.5 + (p.shots_p90 || 0) * 0.3 + (p.shot_conversion || 0) * 0.2) },
-    { name: 'REACTIONS', value: clamp((p.press_success || 0) * 0.4 + (p.pressures_p90 || 0) * 0.3 + (p.dribbles_p90 || 0) * 0.3) },
+    { name: 'POSITIONING', value: positioning },
+    { name: 'REACTIONS', value: reactions },
   ];
 
   function getBarColor(val) {
