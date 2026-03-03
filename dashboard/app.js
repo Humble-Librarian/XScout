@@ -1695,57 +1695,69 @@ function drawPositionalHeatmap(selector, player) {
   }
 }
 
-// Google Charts bar visualization for attribute comparison
+// FIFA-style HTML/CSS attribute bars — full 16 attributes
 function drawAttributeBars(selector, player) {
-  if (!googleChartsLoaded) {
-    setTimeout(() => drawAttributeBars(selector, player), 100);
-    return;
+  const container = document.querySelector(selector);
+  if (!container) return;
+
+  // Helper: clamp value between 0–100
+  function clamp(v) { return Math.round(Math.max(0, Math.min(100, v))); }
+
+  // Derive all 16 FIFA attributes from the available metrics
+  const p = player;
+  const fifaAttrs = [
+    { name: 'PACE', value: clamp((p.distance_p90 || 0) * 0.6 + (p.dribbles_p90 || 0) * 0.4) },
+    { name: 'SHOOTING', value: clamp((p.shots_p90 || 0) * 0.5 + (p.xg_p90 || 0) * 0.3 + (p.shot_conversion || 0) * 0.2) },
+    { name: 'PASSING', value: clamp((p.pass_completion || 0) * 0.5 + (p.prog_passes_p90 || 0) * 0.3 + (p.key_passes_p90 || 0) * 0.2) },
+    { name: 'DRIBBLING', value: clamp((p.dribbles_p90 || 0) * 0.7 + (p.distance_p90 || 0) * 0.3) },
+    { name: 'DEFENDING', value: clamp((p.pressures_p90 || 0) * 0.4 + (p.press_success || 0) * 0.4 + (p.aerial_win_rate || 0) * 0.2) },
+    { name: 'PHYSICAL', value: clamp((p.aerial_win_rate || 0) * 0.35 + (p.distance_p90 || 0) * 0.35 + (p.pressures_p90 || 0) * 0.3) },
+    { name: 'FINISHING', value: clamp((p.shot_conversion || 0) * 0.6 + (p.xg_p90 || 0) * 0.4) },
+    { name: 'HEADING', value: clamp((p.aerial_win_rate || 0) * 0.8 + (p.pressures_p90 || 0) * 0.2) },
+    { name: 'LONGSHOTS', value: clamp((p.shots_p90 || 0) * 0.5 + (p.xg_p90 || 0) * 0.2 + (p.distance_p90 || 0) * 0.3) },
+    { name: 'CROSSING', value: clamp((p.key_passes_p90 || 0) * 0.5 + (p.prog_passes_p90 || 0) * 0.3 + (p.pass_completion || 0) * 0.2) },
+    { name: 'VISION', value: clamp((p.key_passes_p90 || 0) * 0.4 + (p.prog_passes_p90 || 0) * 0.4 + (p.pass_completion || 0) * 0.2) },
+    { name: 'STAMINA', value: clamp((p.distance_p90 || 0) * 0.6 + (p.pressures_p90 || 0) * 0.4) },
+    { name: 'STRENGTH', value: clamp((p.aerial_win_rate || 0) * 0.5 + (p.pressures_p90 || 0) * 0.3 + (p.press_success || 0) * 0.2) },
+    { name: 'AGGRESSION', value: clamp((p.pressures_p90 || 0) * 0.5 + (p.press_success || 0) * 0.3 + (p.distance_p90 || 0) * 0.2) },
+    { name: 'POSITIONING', value: clamp((p.xg_p90 || 0) * 0.5 + (p.shots_p90 || 0) * 0.3 + (p.shot_conversion || 0) * 0.2) },
+    { name: 'REACTIONS', value: clamp((p.press_success || 0) * 0.4 + (p.pressures_p90 || 0) * 0.3 + (p.dribbles_p90 || 0) * 0.3) },
+  ];
+
+  function getBarColor(val) {
+    if (val >= 90) return '#b8ff57'; // Bright Green (Elite)
+    if (val >= 80) return '#00e5ff'; // Cyan (Great)
+    if (val >= 70) return '#ffd166'; // Yellow (Good)
+    if (val >= 50) return '#ffaa00'; // Orange (Average)
+    return '#ff5e3a';                // Red (Poor)
   }
 
-  const data = new google.visualization.DataTable();
-  data.addColumn('string', 'Attribute');
-  data.addColumn('number', 'Value');
-  data.addColumn({ type: 'string', role: 'style' });
+  let html = '<div class="fifa-attribute-breakdown">';
 
-  const rows = METRICS.map(attr => {
-    const value = player[attr] || 0;
-    let color;
-    if (value >= 85) color = '#b8ff57';
-    else if (value >= 70) color = '#00e5ff';
-    else if (value >= 55) color = '#ffd166';
-    else color = '#ff5e3a';
-    return [METRIC_LABELS[attr] || attr, value, color];
+  fifaAttrs.forEach((attr) => {
+    const color = getBarColor(attr.value);
+    html += `
+      <div class="fifa-attr-row">
+        <span class="fifa-attr-name">${attr.name}</span>
+        <div class="fifa-attr-bar-bg">
+          <div class="fifa-attr-bar-fill" data-width="${attr.value}" style="width: 0%; background: ${color};"></div>
+        </div>
+        <span class="fifa-attr-value" style="color: ${color};">${attr.value}</span>
+      </div>`;
   });
 
-  data.addRows(rows);
+  html += '</div>';
+  container.innerHTML = html;
 
-  const options = {
-    title: 'Player Attributes',
-    titleTextStyle: {
-      color: '#e8f0f8',
-      fontSize: 14,
-      fontName: 'DM Sans'
-    },
-    backgroundColor: 'transparent',
-    hAxis: {
-      textStyle: { color: '#4a6080', fontName: 'DM Mono' },
-      gridlines: { color: 'rgba(30,45,66,0.5)' }
-    },
-    vAxis: {
-      textStyle: { color: '#4a6080', fontName: 'DM Mono' },
-      gridlines: { color: 'rgba(30,45,66,0.5)' }
-    },
-    legend: { position: 'none' },
-    animation: {
-      startup: true,
-      duration: 1000,
-      easing: 'out'
-    },
-    bar: { groupWidth: '80%' }
-  };
-
-  const chart = new google.visualization.ColumnChart(document.querySelector(selector));
-  chart.draw(data, options);
+  // Animate bars in with stagger
+  setTimeout(() => {
+    const fills = container.querySelectorAll('.fifa-attr-bar-fill');
+    fills.forEach((bar, i) => {
+      setTimeout(() => {
+        bar.style.width = bar.dataset.width + '%';
+      }, i * 40);
+    });
+  }, 50);
 }
 
 // Enhanced render function with professional styling and icons
@@ -1797,43 +1809,28 @@ function renderAdvancedOverview() {
         <div class="overall-num">${p.overall}</div>
         <div class="overall-label">Overall</div>
       </div>
-    </div>
-    
-    <div class="grid-3">
-      <div class="card">
-        <div class="card-label">Attribute Breakdown</div>
-        <div class="attribute-chart-container">
-          <div id="attribute-bars-chart" style="width:100%;height:400px;margin:10px 0;"></div>
-        </div>
-        <div class="divider"></div>
-        <div class="stat-grid">
-          <div class="stat-box">
-            <div class="stat-value">${formatNumber(p.prog_passes_p90, 1)}</div>
-            <div class="stat-label">Progressive Passes</div>
+    </div >
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-label">Attribute Breakdown</div>
+            <div class="attribute-chart-container">
+              <div id="attribute-bars-chart" style="width:100%;margin:10px 0;"></div>
+            </div>
           </div>
-          <div class="stat-box">
-            <div class="stat-value">${formatNumber(p.pass_completion, 1)}%</div>
-            <div class="stat-label">Pass Accuracy</div>
+          <div class="card">
+            <div class="card-label">Player Analysis</div>
+            <div class="radar-wrap" id="radar-overview"></div>
+            <div class="divider"></div>
+            <div class="card-label">Passing Network</div>
+            <div class="chart-container" id="passing-network"></div>
+            <div class="divider"></div>
+            <div class="card-label">Positional Activity Heatmap</div>
+            <div class="chart-container" id="positional-map"></div>
           </div>
-          <div class="stat-box">
-            <div class="stat-value">${formatNumber(p.key_passes_p90, 1)}</div>
-            <div class="stat-label">Key Passes</div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-label">Player Analysis</div>
-        <div class="radar-wrap" id="radar-overview"></div>
-        <div class="divider"></div>
-        <div class="card-label">Passing Network</div>
-        <div class="chart-container" id="passing-network"></div>
-        <div class="divider"></div>
-        <div class="card-label">Positional Activity Heatmap</div>
-        <div class="chart-container" id="positional-map"></div>
-      </div>
-      <div class="card">
-        <div class="card-label">Role Suitability (Top 3)</div>
-        ${Object.entries(ROLES).sort((a, b) => calcRoleFit(p, b[1]) - calcRoleFit(p, a[1])).slice(0, 3).map(([role, weights]) => {
+          <div class="card">
+            <div class="card-label">Role Suitability (Top 3)</div>
+            ${Object.entries(ROLES).sort((a, b) => calcRoleFit(p, b[1]) - calcRoleFit(p, a[1])).slice(0, 3).map(([role, weights]) => {
     const fit = calcRoleFit(p, weights);
     const roleIcons = {
       'Poacher': '🥅',
@@ -1856,29 +1853,29 @@ function renderAdvancedOverview() {
               <span class="role-pct" style="color:${ROLE_COLORS[role]}">${fit}%</span>
             </div>`;
   }).join('')}
-        <div class="divider"></div>
-        <div class="card-label">Performance Metrics</div>
-        <div class="metric-grid">
-          <div class="metric-item" style="animation-delay: 0.1s">
-            <span class="metric-label">⚽ Shots p90</span>
-            <span class="metric-value">${formatNumber(p.shots_p90, 1)}</span>
-          </div>
-          <div class="metric-item" style="animation-delay: 0.2s">
-            <span class="metric-label">📈 Expected Goals</span>
-            <span class="metric-value">${formatNumber(p.xg_p90, 2)}</span>
-          </div>
-          <div class="metric-item" style="animation-delay: 0.3s">
-            <span class="metric-label">🔥 Dribbles p90</span>
-            <span class="metric-value">${formatNumber(p.dribbles_p90, 1)}</span>
-          </div>
-          <div class="metric-item" style="animation-delay: 0.4s">
-            <span class="metric-label">💪 Pressures p90</span>
-            <span class="metric-value">${formatNumber(p.pressures_p90, 1)}</span>
+            <div class="divider"></div>
+            <div class="card-label">Performance Metrics</div>
+            <div class="metric-grid">
+              <div class="metric-item" style="animation-delay: 0.1s">
+                <span class="metric-label">⚽ Shots p90</span>
+                <span class="metric-value">${formatNumber(p.shots_p90, 1)}</span>
+              </div>
+              <div class="metric-item" style="animation-delay: 0.2s">
+                <span class="metric-label">📈 Expected Goals</span>
+                <span class="metric-value">${formatNumber(p.xg_p90, 2)}</span>
+              </div>
+              <div class="metric-item" style="animation-delay: 0.3s">
+                <span class="metric-label">🔥 Dribbles p90</span>
+                <span class="metric-value">${formatNumber(p.dribbles_p90, 1)}</span>
+              </div>
+              <div class="metric-item" style="animation-delay: 0.4s">
+                <span class="metric-label">💪 Pressures p90</span>
+                <span class="metric-value">${formatNumber(p.pressures_p90, 1)}</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  `;
+      `;
 
   // Render all visualizations
   setTimeout(() => {

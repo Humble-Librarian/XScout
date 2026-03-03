@@ -1091,3 +1091,59 @@ select:focus { border-color: var(--accent); }
     font-size: 28px;
   }
 }
+
+/* ─────────────────────────────────────────────
+   FIFA-STYLE ATTRIBUTE BREAKDOWN
+   ───────────────────────────────────────────── */
+
+.fifa-attribute-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fifa-attr-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(30, 45, 66, 0.25);
+}
+
+.fifa-attr-row:last-child {
+  border-bottom: none;
+}
+
+.fifa-attr-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.fifa-attr-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: rgba(30, 45, 66, 0.6);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fifa-attr-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fifa-attr-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+}
