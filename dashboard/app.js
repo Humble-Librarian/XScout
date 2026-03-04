@@ -706,6 +706,7 @@ function initApp() {
   document.getElementById('similar-select').addEventListener('change', renderSimilar);
   document.getElementById('similar-pos-filter').addEventListener('change', renderSimilar);
   document.getElementById('similar-age-filter').addEventListener('change', renderSimilar);
+  document.getElementById('gap-formation').addEventListener('change', renderGapAnalysis);
 
   // Tab navigation
   document.querySelectorAll('.tab').forEach(tab => {
@@ -732,6 +733,7 @@ function refreshAllModules() {
   renderCompare();
   renderRoleFit();
   renderSimilar();
+  renderGapAnalysis();
 }
 
 function populateSelect(id, selected) {
@@ -1181,6 +1183,218 @@ function renderSimilar() {
 
   if (scored.length > 0) {
     drawRadar('#radar-similar', [ref, scored[0]], RADAR_AXES, 280, [['#b8ff57', 0.2], ['#00e5ff', 0.2]]);
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// MODULE 5 — TACTICAL GAP ANALYSIS
+// ─────────────────────────────────────────────
+
+const FORMATIONS = {
+  '4-3-3': [
+    { label: 'GK', pos: 'GK' },
+    { label: 'LB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'RB', pos: 'DF' },
+    { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' },
+    { label: 'LW', pos: 'FW' }, { label: 'ST', pos: 'FW' }, { label: 'RW', pos: 'FW' },
+  ],
+  '4-4-2': [
+    { label: 'GK', pos: 'GK' },
+    { label: 'LB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'RB', pos: 'DF' },
+    { label: 'LM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'RM', pos: 'MF' },
+    { label: 'ST', pos: 'FW' }, { label: 'ST', pos: 'FW' },
+  ],
+  '3-5-2': [
+    { label: 'GK', pos: 'GK' },
+    { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' },
+    { label: 'LWB', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CDM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'RWB', pos: 'MF' },
+    { label: 'ST', pos: 'FW' }, { label: 'ST', pos: 'FW' },
+  ],
+  '4-2-3-1': [
+    { label: 'GK', pos: 'GK' },
+    { label: 'LB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'RB', pos: 'DF' },
+    { label: 'CDM', pos: 'MF' }, { label: 'CDM', pos: 'MF' },
+    { label: 'LAM', pos: 'MF' }, { label: 'CAM', pos: 'MF' }, { label: 'RAM', pos: 'MF' },
+    { label: 'ST', pos: 'FW' },
+  ],
+  '3-4-3': [
+    { label: 'GK', pos: 'GK' },
+    { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' },
+    { label: 'LM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'RM', pos: 'MF' },
+    { label: 'LW', pos: 'FW' }, { label: 'ST', pos: 'FW' }, { label: 'RW', pos: 'FW' },
+  ],
+  '5-3-2': [
+    { label: 'GK', pos: 'GK' },
+    { label: 'LWB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'RWB', pos: 'DF' },
+    { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' },
+    { label: 'ST', pos: 'FW' }, { label: 'ST', pos: 'FW' },
+  ],
+};
+
+const GAP_CATEGORIES = [
+  { key: 'pace', label: 'Pace', metrics: ['distance_p90'], color: '#00e5ff' },
+  { key: 'attack', label: 'Attack', metrics: ['shots_p90', 'xg_p90', 'shot_conversion'], color: '#ff5e3a' },
+  { key: 'passing', label: 'Passing', metrics: ['prog_passes_p90', 'pass_completion', 'key_passes_p90'], color: '#b8ff57' },
+  { key: 'defending', label: 'Defending', metrics: ['pressures_p90', 'press_success'], color: '#ffd166' },
+  { key: 'physical', label: 'Physical', metrics: ['aerial_win_rate', 'distance_p90'], color: '#c77dff' },
+  { key: 'creativity', label: 'Creativity', metrics: ['key_passes_p90', 'dribbles_p90'], color: '#4cc9f0' },
+];
+
+function renderGapAnalysis() {
+  const formationSelect = document.getElementById('gap-formation');
+  const rosterEl = document.getElementById('gap-roster');
+  const chartEl = document.getElementById('gap-chart');
+  const suggestionsEl = document.getElementById('gap-suggestions');
+
+  // Populate formation dropdown (only once)
+  if (formationSelect.options.length === 0) {
+    Object.keys(FORMATIONS).forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f;
+      opt.textContent = f;
+      formationSelect.appendChild(opt);
+    });
+  }
+
+  const selectedFormation = formationSelect.value || '4-3-3';
+  const slots = FORMATIONS[selectedFormation];
+
+  // Build roster grid with positional dropdowns
+  rosterEl.innerHTML = '';
+  slots.forEach((slot, i) => {
+    const posPlayers = PLAYERS.filter(p => p.position === slot.pos);
+    const div = document.createElement('div');
+    div.className = 'gap-slot';
+    let optionsHtml = '<option value="">— Empty —</option>';
+    posPlayers.forEach((p, idx) => {
+      optionsHtml += `<option value="${idx}" data-pid="${p.player_id}">${p.name} (${p.competition})</option>`;
+    });
+    div.innerHTML = `
+      <span class="gap-slot-label">${slot.label} · ${slot.pos}</span>
+      <select class="gap-player-select" data-slot="${i}" data-pos="${slot.pos}">${optionsHtml}</select>
+    `;
+    rosterEl.appendChild(div);
+  });
+
+  // Wire change events on all squad selects
+  rosterEl.querySelectorAll('.gap-player-select').forEach(sel => {
+    sel.addEventListener('change', () => updateGapChart());
+  });
+
+  updateGapChart();
+
+  function updateGapChart() {
+    // Gather selected squad
+    const squad = [];
+    rosterEl.querySelectorAll('.gap-player-select').forEach(sel => {
+      if (sel.value === '') return;
+      const pos = sel.dataset.pos;
+      const posPlayers = PLAYERS.filter(p => p.position === pos);
+      const idx = parseInt(sel.value);
+      if (posPlayers[idx]) squad.push(posPlayers[idx]);
+    });
+
+    // Calculate category averages
+    function categoryAvg(players, metrics) {
+      if (players.length === 0) return 0;
+      let sum = 0;
+      let count = 0;
+      players.forEach(p => {
+        metrics.forEach(m => {
+          sum += (p[m] || 0);
+          count++;
+        });
+      });
+      return count > 0 ? sum / count : 0;
+    }
+
+    // League averages
+    const leagueAvgs = {};
+    GAP_CATEGORIES.forEach(cat => {
+      leagueAvgs[cat.key] = categoryAvg(PLAYERS, cat.metrics);
+    });
+
+    // Squad averages
+    const squadAvgs = {};
+    GAP_CATEGORIES.forEach(cat => {
+      squadAvgs[cat.key] = squad.length > 0 ? categoryAvg(squad, cat.metrics) : 0;
+    });
+
+    // Render chart
+    let chartHtml = `
+      <div class="gap-legend">
+        <div class="gap-legend-item"><span class="gap-legend-dot" style="background: #00e5ff;"></span> Your Squad</div>
+        <div class="gap-legend-item"><span class="gap-legend-dot" style="background: rgba(255,255,255,0.25);"></span> League Avg</div>
+      </div>
+    `;
+
+    let weakestCat = null;
+    let biggestGap = Infinity;
+
+    GAP_CATEGORIES.forEach(cat => {
+      const squadVal = Math.round(squadAvgs[cat.key]);
+      const leagueVal = Math.round(leagueAvgs[cat.key]);
+      const delta = squadVal - leagueVal;
+      const deltaClass = delta >= 0 ? 'positive' : 'negative';
+      const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
+
+      if (delta < biggestGap && squad.length > 0) {
+        biggestGap = delta;
+        weakestCat = cat;
+      }
+
+      chartHtml += `
+        <div class="gap-chart-row">
+          <span class="gap-chart-label">${cat.label}</span>
+          <div class="gap-chart-bars">
+            <div class="gap-bar-wrapper">
+              <span class="gap-bar-tag">Squad</span>
+              <div class="gap-bar-bg"><div class="gap-bar-fill" style="width: ${squadVal}%; background: ${cat.color};"></div></div>
+              <span class="gap-bar-value" style="color: ${cat.color};">${squadVal}</span>
+            </div>
+            <div class="gap-bar-wrapper">
+              <span class="gap-bar-tag">League</span>
+              <div class="gap-bar-bg"><div class="gap-bar-fill" style="width: ${leagueVal}%; background: rgba(255,255,255,0.25);"></div></div>
+              <span class="gap-bar-value" style="color: var(--muted);">${leagueVal}</span>
+            </div>
+          </div>
+          <span class="gap-delta ${deltaClass}">${squad.length > 0 ? deltaStr : '—'}</span>
+        </div>
+      `;
+    });
+
+    chartEl.innerHTML = chartHtml;
+
+    // Render suggestions for weakest category
+    if (!weakestCat || squad.length === 0) {
+      suggestionsEl.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem;">Select players in your squad to see gap analysis and transfer suggestions.</p>';
+      return;
+    }
+
+    // Find top 5 players NOT in squad who excel at the weakest area
+    const squadIds = new Set(squad.map(p => p.player_id));
+    const candidates = PLAYERS
+      .filter(p => !squadIds.has(p.player_id))
+      .map(p => ({
+        player: p,
+        score: categoryAvg([p], weakestCat.metrics),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    let sugHtml = `<p style="color: var(--accent2); font-size: 0.85rem; margin-bottom: 12px;">⚠️ Weakest area: <strong>${weakestCat.label}</strong> (${biggestGap >= 0 ? '+' : ''}${Math.round(biggestGap)} vs league)</p>`;
+    sugHtml += '<div class="gap-suggestions-grid">';
+    candidates.forEach(c => {
+      sugHtml += `
+        <div class="gap-suggestion-card">
+          <span class="gap-suggestion-name">${c.player.name}</span>
+          <span class="gap-suggestion-meta">${c.player.position} · ${c.player.competition} · Age ${c.player.age}</span>
+          <span class="gap-suggestion-stat">${weakestCat.label}: ${Math.round(c.score)}</span>
+        </div>
+      `;
+    });
+    sugHtml += '</div>';
+    suggestionsEl.innerHTML = sugHtml;
   }
 }
 

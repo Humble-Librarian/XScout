@@ -70,6 +70,7 @@
     <div class="tab" data-panel="compare">② Comparison</div>
     <div class="tab" data-panel="rolefit">③ Role Fit</div>
     <div class="tab" data-panel="similar">④ Similar Players</div>
+    <div class="tab" data-panel="gap">⑤ Tactical Gap</div>
   </nav>
 
   <main>
@@ -155,6 +156,33 @@
       </div>
 
       <div id="similar-content"></div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════
+     PANEL 5 — TACTICAL GAP ANALYSIS
+═══════════════════════════════════════════════ -->
+    <div class="panel" id="panel-gap">
+      <p class="section-title">Module 05</p>
+      <h1 class="section-heading">Tactical <em>Gap Analysis</em></h1>
+
+      <div class="controls-row">
+        <span class="label-sm">Formation:</span>
+        <select id="gap-formation"></select>
+      </div>
+
+      <div id="gap-content">
+        <div class="gap-roster-grid" id="gap-roster"></div>
+        <div class="gap-analysis-container">
+          <h3 class="gap-section-title">Squad vs League Average</h3>
+          <div id="gap-chart"></div>
+        </div>
+        <div class="gap-suggestions-container">
+          <h3 class="gap-section-title">Suggested Targets</h3>
+          <p class="gap-hint">Players who best fill your weakest area</p>
+          <div id="gap-suggestions"></div>
+        </div>
+      </div>
     </div>
 
   </main>
