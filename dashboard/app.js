@@ -1193,41 +1193,57 @@ function renderSimilar() {
 
 const FORMATIONS = {
   '4-3-3': [
-    { label: 'GK', pos: 'GK' },
-    { label: 'LB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'RB', pos: 'DF' },
-    { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' },
-    { label: 'LW', pos: 'FW' }, { label: 'ST', pos: 'FW' }, { label: 'RW', pos: 'FW' },
+    { label: 'GK', pos: 'GK', x: 50, y: 90 },
+    { label: 'LB', pos: 'DF', x: 15, y: 72 }, { label: 'CB', pos: 'DF', x: 38, y: 72 },
+    { label: 'CB', pos: 'DF', x: 62, y: 72 }, { label: 'RB', pos: 'DF', x: 85, y: 72 },
+    { label: 'CM', pos: 'MF', x: 25, y: 48 }, { label: 'CM', pos: 'MF', x: 50, y: 48 },
+    { label: 'CM', pos: 'MF', x: 75, y: 48 },
+    { label: 'LW', pos: 'FW', x: 20, y: 20 }, { label: 'ST', pos: 'FW', x: 50, y: 15 },
+    { label: 'RW', pos: 'FW', x: 80, y: 20 },
   ],
   '4-4-2': [
-    { label: 'GK', pos: 'GK' },
-    { label: 'LB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'RB', pos: 'DF' },
-    { label: 'LM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'RM', pos: 'MF' },
-    { label: 'ST', pos: 'FW' }, { label: 'ST', pos: 'FW' },
+    { label: 'GK', pos: 'GK', x: 50, y: 90 },
+    { label: 'LB', pos: 'DF', x: 15, y: 72 }, { label: 'CB', pos: 'DF', x: 38, y: 72 },
+    { label: 'CB', pos: 'DF', x: 62, y: 72 }, { label: 'RB', pos: 'DF', x: 85, y: 72 },
+    { label: 'LM', pos: 'MF', x: 15, y: 48 }, { label: 'CM', pos: 'MF', x: 38, y: 48 },
+    { label: 'CM', pos: 'MF', x: 62, y: 48 }, { label: 'RM', pos: 'MF', x: 85, y: 48 },
+    { label: 'ST', pos: 'FW', x: 38, y: 18 }, { label: 'ST', pos: 'FW', x: 62, y: 18 },
   ],
   '3-5-2': [
-    { label: 'GK', pos: 'GK' },
-    { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' },
-    { label: 'LWB', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CDM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'RWB', pos: 'MF' },
-    { label: 'ST', pos: 'FW' }, { label: 'ST', pos: 'FW' },
+    { label: 'GK', pos: 'GK', x: 50, y: 90 },
+    { label: 'CB', pos: 'DF', x: 25, y: 72 }, { label: 'CB', pos: 'DF', x: 50, y: 72 },
+    { label: 'CB', pos: 'DF', x: 75, y: 72 },
+    { label: 'LWB', pos: 'MF', x: 10, y: 50 }, { label: 'CM', pos: 'MF', x: 30, y: 48 },
+    { label: 'CDM', pos: 'MF', x: 50, y: 55 }, { label: 'CM', pos: 'MF', x: 70, y: 48 },
+    { label: 'RWB', pos: 'MF', x: 90, y: 50 },
+    { label: 'ST', pos: 'FW', x: 38, y: 18 }, { label: 'ST', pos: 'FW', x: 62, y: 18 },
   ],
   '4-2-3-1': [
-    { label: 'GK', pos: 'GK' },
-    { label: 'LB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'RB', pos: 'DF' },
-    { label: 'CDM', pos: 'MF' }, { label: 'CDM', pos: 'MF' },
-    { label: 'LAM', pos: 'MF' }, { label: 'CAM', pos: 'MF' }, { label: 'RAM', pos: 'MF' },
-    { label: 'ST', pos: 'FW' },
+    { label: 'GK', pos: 'GK', x: 50, y: 90 },
+    { label: 'LB', pos: 'DF', x: 15, y: 72 }, { label: 'CB', pos: 'DF', x: 38, y: 72 },
+    { label: 'CB', pos: 'DF', x: 62, y: 72 }, { label: 'RB', pos: 'DF', x: 85, y: 72 },
+    { label: 'CDM', pos: 'MF', x: 35, y: 55 }, { label: 'CDM', pos: 'MF', x: 65, y: 55 },
+    { label: 'LAM', pos: 'MF', x: 20, y: 35 }, { label: 'CAM', pos: 'MF', x: 50, y: 35 },
+    { label: 'RAM', pos: 'MF', x: 80, y: 35 },
+    { label: 'ST', pos: 'FW', x: 50, y: 15 },
   ],
   '3-4-3': [
-    { label: 'GK', pos: 'GK' },
-    { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' },
-    { label: 'LM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'RM', pos: 'MF' },
-    { label: 'LW', pos: 'FW' }, { label: 'ST', pos: 'FW' }, { label: 'RW', pos: 'FW' },
+    { label: 'GK', pos: 'GK', x: 50, y: 90 },
+    { label: 'CB', pos: 'DF', x: 25, y: 72 }, { label: 'CB', pos: 'DF', x: 50, y: 72 },
+    { label: 'CB', pos: 'DF', x: 75, y: 72 },
+    { label: 'LM', pos: 'MF', x: 15, y: 48 }, { label: 'CM', pos: 'MF', x: 38, y: 48 },
+    { label: 'CM', pos: 'MF', x: 62, y: 48 }, { label: 'RM', pos: 'MF', x: 85, y: 48 },
+    { label: 'LW', pos: 'FW', x: 20, y: 20 }, { label: 'ST', pos: 'FW', x: 50, y: 15 },
+    { label: 'RW', pos: 'FW', x: 80, y: 20 },
   ],
   '5-3-2': [
-    { label: 'GK', pos: 'GK' },
-    { label: 'LWB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'CB', pos: 'DF' }, { label: 'RWB', pos: 'DF' },
-    { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' }, { label: 'CM', pos: 'MF' },
-    { label: 'ST', pos: 'FW' }, { label: 'ST', pos: 'FW' },
+    { label: 'GK', pos: 'GK', x: 50, y: 90 },
+    { label: 'LWB', pos: 'DF', x: 10, y: 65 }, { label: 'CB', pos: 'DF', x: 30, y: 72 },
+    { label: 'CB', pos: 'DF', x: 50, y: 72 }, { label: 'CB', pos: 'DF', x: 70, y: 72 },
+    { label: 'RWB', pos: 'DF', x: 90, y: 65 },
+    { label: 'CM', pos: 'MF', x: 25, y: 48 }, { label: 'CM', pos: 'MF', x: 50, y: 48 },
+    { label: 'CM', pos: 'MF', x: 75, y: 48 },
+    { label: 'ST', pos: 'FW', x: 38, y: 18 }, { label: 'ST', pos: 'FW', x: 62, y: 18 },
   ],
 };
 
@@ -1259,26 +1275,58 @@ function renderGapAnalysis() {
   const selectedFormation = formationSelect.value || '4-3-3';
   const slots = FORMATIONS[selectedFormation];
 
-  // Build roster grid with positional dropdowns
-  rosterEl.innerHTML = '';
+  // Build 2D pitch with positioned player slots
+  let pitchHtml = `
+    <div class="pitch-container">
+      <div class="pitch">
+        <div class="pitch-center-arc"></div>
+        <div class="pitch-penalty-box pitch-penalty-bottom"></div>
+        <div class="pitch-goal-box pitch-goal-bottom"></div>
+  `;
+
   slots.forEach((slot, i) => {
     const posPlayers = PLAYERS.filter(p => p.position === slot.pos);
-    const div = document.createElement('div');
-    div.className = 'gap-slot';
-    let optionsHtml = '<option value="">— Empty —</option>';
+    let optionsHtml = '<option value="">—</option>';
     posPlayers.forEach((p, idx) => {
-      optionsHtml += `<option value="${idx}" data-pid="${p.player_id}">${p.name} (${p.competition})</option>`;
+      optionsHtml += `<option value="${idx}">${p.name}</option>`;
     });
-    div.innerHTML = `
-      <span class="gap-slot-label">${slot.label} · ${slot.pos}</span>
-      <select class="gap-player-select" data-slot="${i}" data-pos="${slot.pos}">${optionsHtml}</select>
+
+    pitchHtml += `
+      <div class="pitch-player" style="left: ${slot.x}%; top: ${slot.y}%;">
+        <div class="pitch-player-avatar" data-slot="${i}">
+          <svg viewBox="0 0 24 24" fill="rgba(255,255,255,0.35)" width="32" height="32">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+        </div>
+        <div class="pitch-add-btn">+</div>
+        <span class="pitch-player-label">${slot.label}</span>
+        <span class="pitch-player-name"></span>
+        <select class="pitch-player-select gap-player-select" data-slot="${i}" data-pos="${slot.pos}">${optionsHtml}</select>
+      </div>
     `;
-    rosterEl.appendChild(div);
   });
+
+  pitchHtml += '</div></div>';
+  rosterEl.innerHTML = pitchHtml;
 
   // Wire change events on all squad selects
   rosterEl.querySelectorAll('.gap-player-select').forEach(sel => {
-    sel.addEventListener('change', () => updateGapChart());
+    sel.addEventListener('change', () => {
+      // Update visual state of the player circle
+      const parent = sel.closest('.pitch-player');
+      const nameEl = parent.querySelector('.pitch-player-name');
+      if (sel.value !== '') {
+        parent.classList.add('has-player');
+        const pos = sel.dataset.pos;
+        const posPlayers = PLAYERS.filter(p => p.position === pos);
+        const idx = parseInt(sel.value);
+        if (nameEl && posPlayers[idx]) nameEl.textContent = posPlayers[idx].name.split(' ').pop();
+      } else {
+        parent.classList.remove('has-player');
+        if (nameEl) nameEl.textContent = '';
+      }
+      updateGapChart();
+    });
   });
 
   updateGapChart();
