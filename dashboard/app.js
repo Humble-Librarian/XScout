@@ -1703,6 +1703,12 @@ function drawAttributeBars(selector, player) {
   // Helper: clamp value between 0–100
   function clamp(v) { return Math.round(Math.max(0, Math.min(100, v))); }
 
+  // Rescale 0-100 percentile to a 40-95 professional range
+  function rescale(val) {
+    if (val === 0) return 30; // Absolute floor for missing data
+    return Math.round(40 + (val / 100) * 55);
+  }
+
   // Derive all 16 FIFA attributes — position-aware formulas
   const p = player;
   const pos = (p.position || '').toUpperCase();
@@ -1754,30 +1760,30 @@ function drawAttributeBars(selector, player) {
   }
 
   const fifaAttrs = [
-    { name: 'PACE', value: pace },
-    { name: 'SHOOTING', value: shooting },
-    { name: 'PASSING', value: clamp((p.pass_completion || 0) * 0.5 + (p.prog_passes_p90 || 0) * 0.3 + (p.key_passes_p90 || 0) * 0.2) },
-    { name: 'DRIBBLING', value: dribbling },
-    { name: 'DEFENDING', value: defending },
-    { name: 'PHYSICAL', value: physical },
-    { name: 'FINISHING', value: finishing },
-    { name: 'HEADING', value: clamp((p.aerial_win_rate || 0) * 0.8 + (p.pressures_p90 || 0) * 0.2) },
-    { name: 'LONGSHOTS', value: longshots },
-    { name: 'CROSSING', value: clamp((p.key_passes_p90 || 0) * 0.5 + (p.prog_passes_p90 || 0) * 0.3 + (p.pass_completion || 0) * 0.2) },
-    { name: 'VISION', value: clamp((p.key_passes_p90 || 0) * 0.4 + (p.prog_passes_p90 || 0) * 0.4 + (p.pass_completion || 0) * 0.2) },
-    { name: 'STAMINA', value: stamina },
-    { name: 'STRENGTH', value: clamp((p.aerial_win_rate || 0) * 0.5 + (p.pressures_p90 || 0) * 0.3 + (p.press_success || 0) * 0.2) },
-    { name: 'AGGRESSION', value: clamp((p.pressures_p90 || 0) * 0.5 + (p.press_success || 0) * 0.3 + (p.distance_p90 || 0) * 0.2) },
-    { name: 'POSITIONING', value: positioning },
-    { name: 'REACTIONS', value: reactions },
+    { name: 'PACE', value: rescale(pace) },
+    { name: 'SHOOTING', value: rescale(shooting) },
+    { name: 'PASSING', value: rescale(clamp((p.pass_completion || 0) * 0.5 + (p.prog_passes_p90 || 0) * 0.3 + (p.key_passes_p90 || 0) * 0.2)) },
+    { name: 'DRIBBLING', value: rescale(dribbling) },
+    { name: 'DEFENDING', value: rescale(defending) },
+    { name: 'PHYSICAL', value: rescale(physical) },
+    { name: 'FINISHING', value: rescale(finishing) },
+    { name: 'HEADING', value: rescale(clamp((p.aerial_win_rate || 0) * 0.8 + (p.pressures_p90 || 0) * 0.2)) },
+    { name: 'LONGSHOTS', value: rescale(longshots) },
+    { name: 'CROSSING', value: rescale(clamp((p.key_passes_p90 || 0) * 0.5 + (p.prog_passes_p90 || 0) * 0.3 + (p.pass_completion || 0) * 0.2)) },
+    { name: 'VISION', value: rescale(clamp((p.key_passes_p90 || 0) * 0.4 + (p.prog_passes_p90 || 0) * 0.4 + (p.pass_completion || 0) * 0.2)) },
+    { name: 'STAMINA', value: rescale(stamina) },
+    { name: 'STRENGTH', value: rescale(clamp((p.aerial_win_rate || 0) * 0.5 + (p.pressures_p90 || 0) * 0.3 + (p.press_success || 0) * 0.2)) },
+    { name: 'AGGRESSION', value: rescale(clamp((p.pressures_p90 || 0) * 0.5 + (p.press_success || 0) * 0.3 + (p.distance_p90 || 0) * 0.2)) },
+    { name: 'POSITIONING', value: rescale(positioning) },
+    { name: 'REACTIONS', value: rescale(reactions) },
   ];
 
   function getBarColor(val) {
-    if (val >= 90) return '#b8ff57'; // Bright Green (Elite)
-    if (val >= 80) return '#00e5ff'; // Cyan (Great)
-    if (val >= 70) return '#ffd166'; // Yellow (Good)
-    if (val >= 50) return '#ffaa00'; // Orange (Average)
-    return '#ff5e3a';                // Red (Poor)
+    if (val >= 88) return '#b8ff57'; // Elite
+    if (val >= 80) return '#00e5ff'; // Great
+    if (val >= 70) return '#ffd166'; // Good
+    if (val >= 60) return '#ffaa00'; // Average
+    return '#ff5e3a';                // Poor
   }
 
   let html = '<div class="fifa-attribute-breakdown">';
