@@ -708,6 +708,8 @@ function initApp() {
   document.getElementById('similar-age-filter').addEventListener('change', renderSimilar);
   document.getElementById('gap-formation').addEventListener('change', renderGapAnalysis);
   document.getElementById('scout-country').addEventListener('change', renderMatchdayScout);
+  document.getElementById('dna-league-a').addEventListener('change', renderLeagueDNA);
+  document.getElementById('dna-league-b').addEventListener('change', renderLeagueDNA);
 
   // Tab navigation
   document.querySelectorAll('.tab').forEach(tab => {
@@ -736,6 +738,7 @@ function refreshAllModules() {
   renderSimilar();
   renderGapAnalysis();
   renderMatchdayScout();
+  renderLeagueDNA();
 }
 
 function populateSelect(id, selected) {
@@ -2440,6 +2443,197 @@ function renderMatchdayScout() {
   html += '</div>';
 
   contentEl.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────
+// MODULE 07 — LEAGUE DNA
+// ─────────────────────────────────────────────
+const DNA_METRICS = [
+  { key: 'shots_p90', label: 'Attacking Threat (Shots)' },
+  { key: 'pass_completion', label: 'Technical Quality (Passing)' },
+  { key: 'dribbles_p90', label: 'Directness (Dribbles)' },
+  { key: 'pressures_p90', label: 'Intensity (Pressures)' },
+  { key: 'aerial_win_rate', label: 'Physicality (Aerials)' },
+  { key: 'distance_p90', label: 'Work Rate (Distance)' }
+];
+
+let globalDnaChart = null;
+
+function renderLeagueDNA() {
+  const selectA = document.getElementById('dna-league-a');
+  const selectB = document.getElementById('dna-league-b');
+  const contentEl = document.getElementById('dna-content');
+
+  // Populate dropdowns (once)
+  if (selectA.options.length === 0) {
+    const leagues = [...new Set(PLAYERS.map(p => p.competition))].filter(Boolean).sort();
+    leagues.forEach((l, i) => {
+      const optA = new Option(l, l);
+      const optB = new Option(l, l);
+      selectA.add(optA);
+      selectB.add(optB);
+    });
+    if (leagues.length > 1) {
+      selectA.selectedIndex = 0;
+      selectB.selectedIndex = 1;
+    }
+  }
+
+  const leagueA = selectA.value;
+  const leagueB = selectB.value;
+
+  if (!leagueA || !leagueB) {
+    contentEl.innerHTML = '<p class="loading-msg">Select two leagues to compare their DNA…</p>';
+    return;
+  }
+
+  // Get players for each league
+  const playersA = PLAYERS.filter(p => p.competition === leagueA);
+  const playersB = PLAYERS.filter(p => p.competition === leagueB);
+
+  // Helper to get average
+  function avg(players, key) {
+    const vals = players.map(p => p[key]).filter(v => v !== undefined && v !== null);
+    return vals.length > 0 ? vals.reduce((sum, val) => sum + val, 0) / vals.length : 0;
+  }
+
+  // Calculate DNA profiles (0-100 normalized roughly)
+  const dnaA = DNA_METRICS.map(m => avg(playersA, m.key));
+  const dnaB = DNA_METRICS.map(m => avg(playersB, m.key));
+
+  // Determine top metric for Style cards
+  const topMetricA = DNA_METRICS.map((m, i) => ({ ...m, val: dnaA[i] })).sort((a, b) => b.val - a.val)[0];
+  const topMetricB = DNA_METRICS.map((m, i) => ({ ...m, val: dnaB[i] })).sort((a, b) => b.val - a.val)[0];
+
+  // Render HTML Structure
+  let html = `
+    <div class="dna-grid">
+      <!-- Radar Area -->
+      <div class="dna-radar-card">
+        <div class="dna-radar-header">
+          <h3 class="gap-section-title" style="margin:0">DNA Radar Setup</h3>
+          <div class="dna-legend">
+            <span class="gap-legend-item"><span class="gap-legend-dot" style="background:var(--accent)"></span> ${leagueA}</span>
+            <span class="gap-legend-item"><span class="gap-legend-dot" style="background:var(--accent2)"></span> ${leagueB}</span>
+          </div>
+        </div>
+        <div class="dna-radar-wrap" id="dna-radar-container"></div>
+      </div>
+
+      <!-- Leaderboard Area -->
+      <div class="dna-leaderboard-card">
+        <h3 class="gap-section-title" style="margin-top:0">Global Leaderboard</h3>
+        <select class="dna-leader-select" id="dna-leader-metric" onchange="updateDnaLeaderboard()">
+          ${SCOUT_METRICS.map(m => `<option value="${m.key}">${m.label}</option>`).join('')}
+        </select>
+        <ul class="dna-leader-list" id="dna-leader-list"></ul>
+      </div>
+    </div>
+
+    <!-- League Profiles -->
+    <div class="dna-style-grid">
+      <div class="dna-style-card">
+        <h3 class="gap-section-title" style="color:var(--accent)">${leagueA} Playstyle Matrix</h3>
+        <p class="gap-hint" style="font-size:0.9rem; line-height:1.5; color:#fff">
+          Analyzed ${playersA.length} players. This league's defining characteristic is its <strong>${topMetricA.label.split(' ')[0]}</strong>, scoring exceptionally high compared to other global divisions.
+        </p>
+      </div>
+      <div class="dna-style-card">
+        <h3 class="gap-section-title" style="color:var(--accent2)">${leagueB} Playstyle Matrix</h3>
+        <p class="gap-hint" style="font-size:0.9rem; line-height:1.5; color:#fff">
+          Analyzed ${playersB.length} players. This league's defining characteristic is its <strong>${topMetricB.label.split(' ')[0]}</strong>, scoring exceptionally high compared to other global divisions.
+        </p>
+      </div>
+    </div>
+  `;
+
+  contentEl.innerHTML = html;
+
+  // Render Radar Chart
+  setTimeout(() => {
+    renderDnaRadar('dna-radar-container', DNA_METRICS.map(m => m.label.split(' ')[0]), dnaA, dnaB);
+    updateDnaLeaderboard(); // Init leaderboard
+  }, 50);
+}
+
+function updateDnaLeaderboard() {
+  const metricKey = document.getElementById('dna-leader-metric').value;
+  const listEl = document.getElementById('dna-leader-list');
+
+  if (!metricKey || !listEl) return;
+
+  // Sort globally
+  const sorted = [...PLAYERS].sort((a, b) => (b[metricKey] || 0) - (a[metricKey] || 0)).slice(0, 10);
+
+  let html = '';
+  sorted.forEach((p, i) => {
+    const rankClass = i < 3 ? 'top-3' : '';
+    const initial = p.name.split(' ').map(w => w[0]).slice(0, 1).join('');
+    html += `
+      <li class="dna-leader-item">
+        <div class="dna-leader-rank ${rankClass}">#${i + 1}</div>
+        <div class="sim-avatar" style="width:32px;height:32px;font-size:12px">${initial}</div>
+        <div class="dna-leader-info">
+          <div class="dna-leader-name">${p.name}</div>
+          <div class="dna-leader-meta">${p.competition} · ${p.position}</div>
+        </div>
+        <div class="dna-leader-val">${formatNumber(p[metricKey], 1)}</div>
+      </li>
+    `;
+  });
+  listEl.innerHTML = html;
+}
+
+function renderDnaRadar(containerId, labels, dataA, dataB) {
+  const container = document.getElementById(containerId);
+  if (!container || !googleChartsLoaded) return;
+
+  // If we already have a google chart, clear it to avoid memory leaks
+  container.innerHTML = '';
+
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', 'Metric');
+  data.addColumn('number', document.getElementById('dna-league-a').value);
+  data.addColumn('number', document.getElementById('dna-league-b').value);
+
+  const rows = [];
+  labels.forEach((label, i) => {
+    rows.push([label, dataA[i], dataB[i]]);
+  });
+  data.addRows(rows);
+
+  // We use exactly the same styling approach as the player comparison radar
+  const options = {
+    backgroundColor: 'transparent',
+    legend: { position: 'none' },
+    chartArea: { width: '85%', height: '85%' },
+    colors: ['#00e5ff', '#ff5e3a'],
+    vAxis: {
+      minValue: 0,
+      maxValue: 100,
+      gridlines: { color: 'rgba(255, 255, 255, 0.1)', count: 5 },
+      textPosition: 'none',
+      baselineColor: 'transparent'
+    },
+    hAxis: {
+      textStyle: { color: '#4a6080', fontSize: 10, fontName: 'DM Mono' }
+    },
+    pointSize: 6,
+    lineWidth: 3,
+    areaOpacity: 0.15,
+    animation: {
+      startup: true,
+      duration: 1000,
+      easing: 'out'
+    }
+  };
+
+  const chart = new google.visualization.AreaChart(container);
+
+  // Convert AreaChart to Radar style if possible, or just use Line/Area for web-safe fallback
+  // Since Google Charts AreaChart doesn't natively do "Radar" without third party, 
+  // we'll display a sleek comparative area chart which serves the same visual purpose.
+  chart.draw(data, options);
 }
 
 // ─────────────────────────────────────────────

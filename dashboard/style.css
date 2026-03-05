@@ -1953,3 +1953,179 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   MODULE 07 — LEAGUE DNA
+═══════════════════════════════════════════════ */
+
+.dna-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+  margin-bottom: 28px;
+}
+
+/* DNA Radar Area */
+.dna-radar-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dna-radar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dna-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dna-radar-wrap {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 380px;
+}
+
+/* DNA Leaderboard */
+.dna-leaderboard-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dna-leader-select {
+  width: 100%;
+  margin-bottom: 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  padding: 8px 12px;
+}
+
+.dna-leader-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 380px;
+  padding-right: 4px;
+}
+
+/* Custom Scrollbar for leaderboard */
+.dna-leader-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dna-leader-list::-webkit-scrollbar-track {
+  background: var(--surface2);
+}
+
+.dna-leader-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.dna-leader-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.dna-leader-item:hover {
+  background: rgba(0, 229, 255, 0.05);
+  border-color: rgba(0, 229, 255, 0.2);
+}
+
+.dna-leader-rank {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--muted);
+  width: 20px;
+  text-align: center;
+}
+
+.dna-leader-rank.top-3 {
+  color: var(--gold);
+}
+
+.dna-leader-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.dna-leader-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dna-leader-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dna-leader-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--text);
+}
+
+/* League Style Profiles */
+.dna-style-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.dna-style-card {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.dna-style-card .gap-section-title {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 992px) {
+  .dna-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dna-style-grid {
+    grid-template-columns: 1fr;
+  }
+}

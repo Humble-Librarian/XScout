@@ -72,6 +72,7 @@
     <div class="tab" data-panel="similar">④ Similar Players</div>
     <div class="tab" data-panel="gap">⑤ Tactical Gap</div>
     <div class="tab" data-panel="scout">⑥ Matchday Scout</div>
+    <div class="tab" data-panel="dna">⑦ League DNA</div>
   </nav>
 
   <main>
@@ -201,6 +202,26 @@
 
       <div id="scout-content">
         <p class="loading-msg">Select a country to analyze…</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+     PANEL 7 — LEAGUE DNA
+═══════════════════════════════════════════════ -->
+    <div class="panel" id="panel-dna">
+      <p class="section-title">Module 07</p>
+      <h1 class="section-heading">League <em>DNA & Benchmarks</em></h1>
+
+      <div class="controls-row">
+        <span class="label-sm">Primary League:</span>
+        <select id="dna-league-a"></select>
+        <span class="vs-divider">VS</span>
+        <span class="label-sm">Comparison League:</span>
+        <select id="dna-league-b"></select>
+      </div>
+
+      <div id="dna-content">
+        <p class="loading-msg">Loading global league benchmarks…</p>
       </div>
     </div>
 
