@@ -707,6 +707,7 @@ function initApp() {
   document.getElementById('similar-pos-filter').addEventListener('change', renderSimilar);
   document.getElementById('similar-age-filter').addEventListener('change', renderSimilar);
   document.getElementById('gap-formation').addEventListener('change', renderGapAnalysis);
+  document.getElementById('scout-country').addEventListener('change', renderMatchdayScout);
 
   // Tab navigation
   document.querySelectorAll('.tab').forEach(tab => {
@@ -734,6 +735,7 @@ function refreshAllModules() {
   renderRoleFit();
   renderSimilar();
   renderGapAnalysis();
+  renderMatchdayScout();
 }
 
 function populateSelect(id, selected) {
@@ -2241,6 +2243,204 @@ renderOverview = renderAdvancedOverview;
 
 console.log('✨ Dashboard enhanced with professional styling, animations, and improved data visualization');
 console.log('🎨 Features: Glass morphism effects, iconography, consistent formatting, and smooth interactions');
+
+// ─────────────────────────────────────────────
+// MODULE 06 — MATCHDAY SCOUT
+// ─────────────────────────────────────────────
+const SCOUT_METRICS = [
+  { key: 'shots_p90', label: 'Shots', color: '#ff5e3a' },
+  { key: 'xg_p90', label: 'xG', color: '#ffd166' },
+  { key: 'pass_completion', label: 'Pass Accuracy', color: '#00e5ff' },
+  { key: 'key_passes_p90', label: 'Key Passes', color: '#b8ff57' },
+  { key: 'dribbles_p90', label: 'Dribbles', color: '#c77dff' },
+  { key: 'pressures_p90', label: 'Pressures', color: '#4cc9f0' },
+  { key: 'press_success', label: 'Press Success', color: '#f72585' },
+  { key: 'aerial_win_rate', label: 'Aerial Wins', color: '#ff9e00' },
+  { key: 'distance_p90', label: 'Distance', color: '#00e5ff' },
+];
+
+function renderMatchdayScout() {
+  const countrySelect = document.getElementById('scout-country');
+  const contentEl = document.getElementById('scout-content');
+
+  // Populate country dropdown (once)
+  if (countrySelect.options.length <= 1) {
+    const countries = [...new Set(PLAYERS.map(p => p.country))].filter(Boolean).sort();
+    countrySelect.innerHTML = '<option value="">— Select Country —</option>';
+    countries.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      countrySelect.appendChild(opt);
+    });
+  }
+
+  const selectedCountry = countrySelect.value;
+  if (!selectedCountry) {
+    contentEl.innerHTML = '<p class="loading-msg">Select a country to scout their national team pool…</p>';
+    return;
+  }
+
+  // Filter players for this country
+  const countryPlayers = PLAYERS.filter(p => p.country === selectedCountry);
+  if (countryPlayers.length === 0) {
+    contentEl.innerHTML = '<p class="loading-msg">No players found for this country.</p>';
+    return;
+  }
+
+  // Compute averages
+  function avg(players, key) {
+    const vals = players.map(p => p[key]).filter(v => v !== undefined && v !== null);
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  }
+
+  // Global averages for comparison
+  const globalAvgs = {};
+  const countryAvgs = {};
+  SCOUT_METRICS.forEach(m => {
+    globalAvgs[m.key] = avg(PLAYERS, m.key);
+    countryAvgs[m.key] = avg(countryPlayers, m.key);
+  });
+
+  // Find top threats per position
+  const positions = ['FW', 'MF', 'DF', 'GK'];
+  const threats = [];
+  positions.forEach(pos => {
+    const posPlayers = countryPlayers.filter(p => p.position === pos);
+    if (posPlayers.length === 0) return;
+    // Sort by a composite "danger" score
+    const scored = posPlayers.map(p => {
+      let score = 0;
+      if (pos === 'FW') score = (p.shots_p90 || 0) + (p.xg_p90 || 0) * 2 + (p.shot_conversion || 0);
+      else if (pos === 'MF') score = (p.key_passes_p90 || 0) + (p.prog_passes_p90 || 0) + (p.dribbles_p90 || 0);
+      else if (pos === 'DF') score = (p.pressures_p90 || 0) + (p.aerial_win_rate || 0) + (p.press_success || 0);
+      else score = (p.pass_completion || 0) + (p.aerial_win_rate || 0);
+      return { ...p, dangerScore: score };
+    });
+    scored.sort((a, b) => b.dangerScore - a.dangerScore);
+    threats.push(scored[0]);
+  });
+
+  // Generate tactical tips (rule-based)
+  const tips = [];
+  const weakest = SCOUT_METRICS.map(m => ({
+    ...m,
+    delta: countryAvgs[m.key] - globalAvgs[m.key]
+  })).sort((a, b) => a.delta - b.delta);
+
+  const strongest = [...weakest].reverse();
+
+  // Tip 1: Exploit their weakness
+  const weak1 = weakest[0];
+  tips.push({
+    title: '⚡ Exploit Weakness',
+    body: `Their ${weak1.label.toLowerCase()} is ${Math.round(countryAvgs[weak1.key])} vs the global avg of ${Math.round(globalAvgs[weak1.key])}. Target this area to create chances.`
+  });
+
+  // Tip 2: Watch their strength
+  const strong1 = strongest[0];
+  tips.push({
+    title: '🛡️ Danger Zone',
+    body: `They excel in ${strong1.label.toLowerCase()} (${Math.round(countryAvgs[strong1.key])} vs ${Math.round(globalAvgs[strong1.key])} global avg). Prepare a tactical counter for this.`
+  });
+
+  // Tip 3: Set piece insight
+  const aerialAvg = countryAvgs['aerial_win_rate'];
+  if (aerialAvg > globalAvgs['aerial_win_rate']) {
+    tips.push({
+      title: '🎯 Set Piece Alert',
+      body: `Aerial win rate of ${Math.round(aerialAvg)}% is above average. Mark tightly on corners and free kicks.`
+    });
+  } else {
+    tips.push({
+      title: '🎯 Set Piece Opportunity',
+      body: `Aerial win rate of ${Math.round(aerialAvg)}% is below average. Target them from set pieces with crosses and corners.`
+    });
+  }
+
+  // Tip 4: Pressing analysis
+  const pressAvg = countryAvgs['press_success'];
+  if (pressAvg > globalAvgs['press_success']) {
+    tips.push({
+      title: '🔄 High Press Warning',
+      body: `Press success rate of ${Math.round(pressAvg)}% is strong. Use quick short passes or long balls to bypass their press.`
+    });
+  } else {
+    tips.push({
+      title: '🔄 Press Opportunity',
+      body: `Press success of ${Math.round(pressAvg)}% is below average. Apply high press to force turnovers in their half.`
+    });
+  }
+
+  // Build HTML
+  let html = '';
+
+  // Summary cards
+  html += '<div class="scout-summary">';
+  html += `<div class="scout-stat-card"><div class="scout-stat-value">${countryPlayers.length}</div><div class="scout-stat-label">Players in Pool</div></div>`;
+  html += `<div class="scout-stat-card"><div class="scout-stat-value">${Math.round(avg(countryPlayers, 'age'))}</div><div class="scout-stat-label">Avg Age</div></div>`;
+  html += `<div class="scout-stat-card"><div class="scout-stat-value">${Math.round(avg(countryPlayers, 'minutes_played'))}</div><div class="scout-stat-label">Avg Minutes</div></div>`;
+  html += '</div>';
+
+  // Threat Matrix
+  html += '<h3 class="scout-section-title">🔥 <em>Threat Matrix</em> — Key Players</h3>';
+  html += '<div class="threat-matrix">';
+  threats.forEach(t => {
+    const initials = t.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    html += `
+      <div class="threat-card">
+        <div class="threat-avatar">${initials}</div>
+        <div class="threat-info">
+          <h4>${t.name}</h4>
+          <div class="threat-meta">${t.position} · Age ${t.age}</div>
+        </div>
+        <div class="threat-badge">${Math.round(t.dangerScore)}</div>
+      </div>
+    `;
+  });
+  html += '</div>';
+
+  // Performance Bars (opponent vs global)
+  html += '<h3 class="scout-section-title">📊 Opponent <em>Profile</em> vs Global Average</h3>';
+  html += '<div class="scout-bars">';
+  SCOUT_METRICS.forEach(m => {
+    const val = countryAvgs[m.key];
+    const globalVal = globalAvgs[m.key];
+    const maxVal = Math.max(val, globalVal, 1);
+    const pctCountry = Math.min((val / maxVal) * 100, 100);
+    const pctGlobal = Math.min((globalVal / maxVal) * 100, 100);
+    const delta = val - globalVal;
+    const deltaClass = delta >= 0 ? 'diff-pos' : 'diff-neg';
+    const deltaStr = delta >= 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+
+    html += `
+      <div class="scout-bar-row">
+        <span class="scout-bar-label">${m.label}</span>
+        <div class="scout-bar-bg">
+          <div class="scout-bar-fill" style="width: ${pctCountry}%; background: ${m.color};"></div>
+        </div>
+        <span class="scout-bar-val" style="color: ${m.color}">${val.toFixed(1)}</span>
+        <span class="${deltaClass}" style="font-size: 0.7rem; width: 45px; text-align: right;">${deltaStr}</span>
+      </div>
+    `;
+  });
+  html += '</div>';
+
+  // Tactical Tips
+  html += '<h3 class="scout-section-title">💡 <em>Tactical</em> Intelligence</h3>';
+  html += '<div class="tactical-tips">';
+  tips.forEach(tip => {
+    html += `
+      <div class="tip-card">
+        <div class="tip-card-header">${tip.title}</div>
+        <div class="tip-card-body">${tip.body}</div>
+      </div>
+    `;
+  });
+  html += '</div>';
+
+  contentEl.innerHTML = html;
+}
 
 // ─────────────────────────────────────────────
 // BOOT

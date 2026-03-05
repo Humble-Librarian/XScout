@@ -71,6 +71,7 @@
     <div class="tab" data-panel="rolefit">③ Role Fit</div>
     <div class="tab" data-panel="similar">④ Similar Players</div>
     <div class="tab" data-panel="gap">⑤ Tactical Gap</div>
+    <div class="tab" data-panel="scout">⑥ Matchday Scout</div>
   </nav>
 
   <main>
@@ -182,6 +183,24 @@
           <p class="gap-hint">Players who best fill your weakest area</p>
           <div id="gap-suggestions"></div>
         </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════
+     PANEL 6 — MATCHDAY SCOUT
+═══════════════════════════════════════════════ -->
+    <div class="panel" id="panel-scout">
+      <p class="section-title">Module 06</p>
+      <h1 class="section-heading">Matchday <em>Scout</em></h1>
+
+      <div class="controls-row">
+        <span class="label-sm">Opponent Country:</span>
+        <select id="scout-country"></select>
+      </div>
+
+      <div id="scout-content">
+        <p class="loading-msg">Select a country to analyze…</p>
       </div>
     </div>
 
